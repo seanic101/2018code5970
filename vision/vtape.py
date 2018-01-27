@@ -15,3 +15,17 @@ while(1):
 	mask = cv2.inRange(hsv, lower_green, upper_green)
 #mask filters colors out of the green range from the frame being read
 	result = cv2.bitwise_and(frame, frame, mask = mask)
+#applies mask by saying input array 1 and 2 are frame, output array is mask (still don't fully understand why a bitwise_and is necessary)
+	
+	cv2.imshow('frame', frame)
+	cv2.imshow('mask', mask)
+	cv2.imshow('result', result)
+#why can't you just show result?
+
+	k = cv2.waitKey(5) & 0xFF
+	if k == 27:
+		break
+#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit
+cv2.destroyAllWindows()
+cap.release()
+
