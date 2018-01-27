@@ -8,9 +8,9 @@ while(1):
 #sets frame to equal the video capture window
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
 #changes color to hsv
-	lower_green = np.array([30,130,23]) 
+	lower_green = np.array([100,70,80]) 
 #saw online somewhere that last value only goes to 180 so if problems occur with lower green...
-	upper_green = np.array([0,255,0])
+	upper_green = np.array([145,97,110]) #messing with hsv
 
 	mask = cv2.inRange(hsv, lower_green, upper_green)
 #mask filters colors out of the green range from the frame being read
@@ -20,12 +20,12 @@ while(1):
 	cv2.imshow('frame', frame)
 	cv2.imshow('mask', mask)
 	cv2.imshow('result', result)
-#why can't you just show result?
+#why can't you just show result? b/c when it doesn't work you want to know why...
 
 	k = cv2.waitKey(5) & 0xFF
 	if k == 27:
 		break
-#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit
+#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit, esc key probably closes windows
 cv2.destroyAllWindows()
 cap.release()
 

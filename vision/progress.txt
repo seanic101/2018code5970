@@ -3,4 +3,4 @@
 	1/18/18 worked on script and used http://answers.opencv.org/question/86865/vision-tracking-using-retroreflective-tape/, also robotpy
 	1/20/18 github yay
 	1/21/18 Finished color mask, need to test with LED ring light and retroreflective tape. Also want to test haarcascade with some webcam after push to github. For any reference, github steps after a clone go "'git add','git status', 'git commit -m ["message here"]', 'git push'" and for syncing, "'git fetch', 'git merge'"
-
+	1/27/18 Testing HSV values to detect green but do not have LED Ring light to test with. Super annoying. 
