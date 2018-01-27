@@ -9,11 +9,12 @@ cap = cv2.VideoCapture(0)
 
 while 1: #1 just means True?
 	ret, img = cap.read() #reads captured image?
-	gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 
+	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
 #gray is the grayed version of image
 	faces = face_cascade.detectMultiScale(gray, 1.3, 5) #turns faces gray
 	watches = watch_cascade.detectMultiScale(gray, 50, 50) #turns watches 50x50 pixels gray
 	for (x,y,w,h) in watches: #for each dimension of the watch
+		print "gosh darnit why won't this work"
 		cv2.rectangle(img,(x,y),(x+w, y+h),(255,0,0),2) 
 #draw rectangle at x,y with x+w side length, y+h height. with 255 red?
 
