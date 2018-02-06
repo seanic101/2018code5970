@@ -18,7 +18,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         """
 
         #**************Robot-Side Initialization***************
-        print("HI")
+        
         # Inititalize the Drive motors
         self.left_motors = []
         self.left_motors.append(wpilib.VictorSP(0))
