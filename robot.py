@@ -23,7 +23,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.left_motors = []
         self.left_motors.append(wpilib.VictorSP(0))
         self.left_motors.append(wpilib.VictorSP(1))
-	print("herpes")
+
         self.right_motors = []
         self.right_motors.append(wpilib.VictorSP(4))
         self.right_motors.append(wpilib.VictorSP(3))
