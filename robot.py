@@ -23,11 +23,12 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.left_motors = []
         self.left_motors.append(wpilib.VictorSP(0))
         self.left_motors.append(wpilib.VictorSP(1))
+	self.left_motors.append(wpilib.VictorSP(2))
 
         self.right_motors = []
         self.right_motors.append(wpilib.VictorSP(4))
         self.right_motors.append(wpilib.VictorSP(3))
-
+	self.right_motors.append(wpilib.VictorSP(5))
 
         # too lazy to change the formal from a list even though its only 1 thing.deal with it.
         # Initialize the winch Motor
