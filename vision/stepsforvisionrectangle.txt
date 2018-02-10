@@ -1,0 +1,9 @@
+# capture an image
+
+# convert it to HSV
+
+# pick out the green pixels and make a new image of green object(s)
+
+# Find the green rectangle
+
+# output a rectangle representing the retro reactive tape

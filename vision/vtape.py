@@ -21,24 +21,48 @@ while(1):
 	mask = cv2.inRange(hsv, lower_green, upper_green)
 	#cv2.imshow('mask', mask)
 
-	ret,thresh = cv2.threshold(mask,127,255,0)
+	#pixelates image, does not show small detections
+	kernel = np.ones((10, 10), np.uint8)
+	erosion = cv2.erode(mask, kernel, iterations=1)
+	#cv2.imshow('erosion', erosion)
+
+	#contours the mask, erosion variable below possibly causing
+	#errors
+	erosion,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	#contours = []
+
+	#finds largest object and contours it, saves in recordIndex
+	recordSize = 0
+	recordIndex = -1
+	for i in range(len(contours)):
+		if (cv2.contourArea(contours[i]) > recordSize):
+			recordSize = cv2.contourArea(contours[i])
+			recordIndex = i
+	#if recordIndex >= 0:
+		#print "hello"
+		#cv2.drawContours(erosion,contours,recordIndex,(0,255,0),3)
+	cv2.imshow('erosion',erosion)
+
+	#ret,thresh = cv2.threshold(mask,127,255,0)
 	#cv2.imshow('thresh', thresh)
 
 	# get contours in hopes that these can be converted to
 	# rectangles	
-	contours,hierarchy = cv2.findContours(thresh, 1, 2)
-	if not len(contours) > 0:
-		break
+	#contours,hierarchy = cv2.findContours(thresh, 1, 2)
+	#if not len(contours) > 0:
+		#break
  
-	cnt = contours[0]
-	M = cv2.moments(cnt)
-	print M
-	print contours
+	#cnt = contours[0]
+	#M = cv2.moments(cnt)
+	#print M
+	#print contours
+
 	#approximate shape of object and draw a line surrounding the
 	#object, make polygon a rectangle
-	epsilon = 0.1*cv2.arcLength(cnt,True)
-	approx = cv2.approxPolyDP(cnt,epsilon,True)
-	cv2.imshow('approx', approx)
+	#epsilon = 0.1*cv2.arcLength(cnt,True)
+	#approx = cv2.approxPolyDP(cnt,epsilon,True)
+	#cv2.imshow('approx', approx)
+
 #ret is return value from the camera frame
 
 #uses variables to speed up process, just shows process of contouring in terminal
