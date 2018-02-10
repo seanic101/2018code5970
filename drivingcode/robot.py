@@ -69,9 +69,11 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
     def autonomousPeriodic(self):
         #old auto code could be used to cross baseline
         if self.auto_loop_counter < 10:
-            self.setDriveMotors(1, -1)  # forward auto
-            print("left encoder value"+str(self.Lcoder.get()))
-            print("Right encoder value"+str(self.Rcoder.get()))
+            self.setDriveMotors(.5, -.5)  # forward auto
+            #print("left encoder value"+str(self.Lcoder.get()))
+            #print("Right encoder value"+str(self.Rcoder.get()))
+        elif self.Lcoder.get() >= 20:
+            self.setDriveMotors(0,0)
     
 
 
