@@ -1,10 +1,41 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0)
-var = cap.get(11)
-cap.set(11, 0.1) #default was .433, lower contrast is better
-print var
+
+# Here are the numeric values of the properties that can be set on a VideoCapture:
+# 0. CV_CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
+# 1. CV_CAP_PROP_POS_FRAMES 0-based index of the frame to be decoded/captured next.
+# 3. CV_CAP_PROP_POS_AVI_RATIO Relative position of the video file
+# 4. CV_CAP_PROP_FRAME_WIDTH Width of the frames in the video stream.
+# 5. CV_CAP_PROP_FRAME_HEIGHT Height of the frames in the video stream.
+# 6. CV_CAP_PROP_FPS Frame rate.
+# 7. CV_CAP_PROP_FOURCC 4-character code of codec.
+# 8. CV_CAP_PROP_FRAME_COUNT Number of frames in the video file.
+# 9. CV_CAP_PROP_FORMAT Format of the Mat objects returned by retrieve() .
+# 10. CV_CAP_PROP_MODE Backend-specific value indicating the current capture mode.
+# 11. CV_CAP_PROP_BRIGHTNESS Brightness of the image (only for cameras).
+# 12. CV_CAP_PROP_CONTRAST Contrast of the image (only for cameras).
+# 13. CV_CAP_PROP_SATURATION Saturation of the image (only for cameras).
+# 14. *** CV_CAP_PROP_HUE Hue of the image (only for cameras).
+# 15. *** CV_CAP_PROP_GAIN Gain of the image (only for cameras).
+# 16. *** CV_CAP_PROP_EXPOSURE Exposure (only for cameras).
+# 17. CV_CAP_PROP_CONVERT_RGB Boolean flags indicating whether images should be converted to RGB.
+# 18. CV_CAP_PROP_WHITE_BALANCE Currently unsupported
+# 19. CV_CAP_PROP_RECTIFICATION Rectification flag for stereo cameras (note: only supported by DC1394 v 2.x backend currently)
+# *** not supported by MS camera
+
+
+#contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
+#print "old contrast " + str(contrast)
+#default was .433, lower contrast is better
+#new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.01)
+#print "new contrast " + str(new_con) #-trast
+
+# Setting of the camera exposure is not supported by this camera
+#old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
+#print "old exposure " + str(old_expo)
+#new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
+#print new_expo
 
 while(1):
 	#capture an image
@@ -13,8 +44,11 @@ while(1):
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
 	#find green pixels image using limits in in numpy arrays
+	#lower_green = np.array([75,100,150]) 
+	#upper_green = np.array([95,255,255])
 	lower_green = np.array([75,100,150]) 
 	upper_green = np.array([95,255,255])
+
 
 	#mask filters colors out of the green range from
 	# the frame being read
@@ -22,13 +56,13 @@ while(1):
 	#cv2.imshow('mask', mask)
 
 	#pixelates image, does not show small detections
-	kernel = np.ones((10, 10), np.uint8)
+	kernel = np.ones((3, 3), np.uint8)
 	erosion = cv2.erode(mask, kernel, iterations=1)
-	#cv2.imshow('erosion', erosion)
+	cv2.imshow('erosion', erosion)
 
 	#contours the mask, erosion variable below possibly causing
 	#errors
-	erosion,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	#contours = []
 
 	#finds largest object and contours it, saves in recordIndex
@@ -38,10 +72,10 @@ while(1):
 		if (cv2.contourArea(contours[i]) > recordSize):
 			recordSize = cv2.contourArea(contours[i])
 			recordIndex = i
-	#if recordIndex >= 0:
+	if recordIndex >= 0:
 		#print "hello"
-		#cv2.drawContours(erosion,contours,recordIndex,(0,255,0),3)
-	cv2.imshow('erosion',erosion)
+		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
+	cv2.imshow('hsv',hsv)
 
 	#ret,thresh = cv2.threshold(mask,127,255,0)
 	#cv2.imshow('thresh', thresh)
@@ -71,16 +105,13 @@ while(1):
 		#cv2.rectangle(perimeter,(x,y),(x+w,y+h)(255,200,100),2)
 
 	#result = cv2.bitwise_and(frame, frame, mask = mask)
-#applies mask by saying input array 1 and 2 are frame, output array is mask (still don't fully understand why a bitwise_and is necessary)
 	
 	#cv2.imshow('frame', frame)
 	#cv2.imshow('result', result)
-#why can't you just show result? b/c when it doesn't work you want to know why...
 
 	k = cv2.waitKey(5) & 0xFF
 	if k == 27:
 		break
-#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit, esc key probably closes windows
+#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit, esc key closes windows
 cv2.destroyAllWindows()
 cap.release()
-
