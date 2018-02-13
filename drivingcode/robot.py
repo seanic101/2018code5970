@@ -41,8 +41,8 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.pop_motor.append(wpilib.VictorSP(7))
 
         #Initialize the left and right encoders
-        self.Lcoder = wpilib.Encoder(2,3)
-        self.Rcoder = wpilib.Encoder(0,1)
+        self.Rcoder = wpilib.Encoder(2,3)
+        self.Lcoder = wpilib.Encoder(0,1)
 
 
         #***************Driverstation Initialization******************
@@ -65,15 +65,20 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
         self.auto_loop_counter = 0
+        self.Lcoder.reset()
+        self.Rcoder.reset()
 
     def autonomousPeriodic(self):
         #old auto code could be used to cross baseline
+        print(self.auto_loop_counter)
         if self.auto_loop_counter < 10:
             self.setDriveMotors(.5, -.5)  # forward auto
-            #print("left encoder value"+str(self.Lcoder.get()))
-            #print("Right encoder value"+str(self.Rcoder.get()))
-        elif self.Lcoder.get() >= 20:
+            print("left encoder value "+str(self.Lcoder.get()))
+            print("Right encoder value "+str(self.Rcoder.get()))
+        elif self.Rcoder.get() >= 2000:
             self.setDriveMotors(0,0)
+            print("got past 2000")
+        self.auto_loop_counter += 1
     
 
 
@@ -82,7 +87,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         """else:
                 if self.auto_loop_counter < 20/2:
                     self.DoubleSolenoid.set(1)
-                    self.auto_loop_counter += 1
+                    
 
                 else:
                     if self.auto_loop_counter < 30/2:
