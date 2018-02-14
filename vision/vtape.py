@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+cap = cv2.VideoCapture(0)
 
 # Here are the numeric values of the properties that can be set on a VideoCapture:
 # 0. CV_CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
@@ -25,11 +26,11 @@ import cv2
 # *** not supported by MS camera
 
 
-#contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
-#print "old contrast " + str(contrast)
+contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
+print "old contrast " + str(contrast)
 #default was .433, lower contrast is better
-#new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.01)
-#print "new contrast " + str(new_con) #-trast
+new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
+print "new contrast " + str(new_con) #-trast
 
 # Setting of the camera exposure is not supported by this camera
 #old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
@@ -56,14 +57,12 @@ while(1):
 	#cv2.imshow('mask', mask)
 
 	#pixelates image, does not show small detections
-	kernel = np.ones((3, 3), np.uint8)
+	kernel = np.ones((5, 5), np.uint8)
 	erosion = cv2.erode(mask, kernel, iterations=1)
 	cv2.imshow('erosion', erosion)
 
-	#contours the mask, erosion variable below possibly causing
-	#errors
+	#contours the mask
 	contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-	#contours = []
 
 	#finds largest object and contours it, saves in recordIndex
 	recordSize = 0
@@ -74,11 +73,13 @@ while(1):
 			recordIndex = i
 	if recordIndex >= 0:
 		#print "hello"
+		#drawContours is destructive in OpenCV <3.x.x
 		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
-	cv2.imshow('hsv',hsv)
+		bound = cv2.boundingRect(contours[recordIndex])
+		print bound
 
-	#ret,thresh = cv2.threshold(mask,127,255,0)
-	#cv2.imshow('thresh', thresh)
+	cv2.imshow('hsv',hsv)
+	
 
 	# get contours in hopes that these can be converted to
 	# rectangles	
@@ -98,11 +99,6 @@ while(1):
 	#cv2.imshow('approx', approx)
 
 #ret is return value from the camera frame
-
-#uses variables to speed up process, just shows process of contouring in terminal
-	#perimeter = cv2.arcLength(cnt,True)
-	#for (x,y,w,h) in tape:
-		#cv2.rectangle(perimeter,(x,y),(x+w,y+h)(255,200,100),2)
 
 	#result = cv2.bitwise_and(frame, frame, mask = mask)
 	
