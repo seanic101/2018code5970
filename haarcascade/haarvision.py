@@ -7,7 +7,7 @@ watch_cascade = cv2.CascadeClassifier('watchcascade10stage.xml')
 
 cap = cv2.VideoCapture(0)
 
-while 1: #1 just means True?
+while 1:
 	ret, img = cap.read() #reads captured image?
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
 #gray is the grayed version of image

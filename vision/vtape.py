@@ -75,6 +75,7 @@ while(1):
 		#print "hello"
 		#drawContours is destructive in OpenCV <3.x.x
 		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
+		#boundingRect output when printed is the (x,y and w,h)...maybe...pretty sure...
 		bound = cv2.boundingRect(contours[recordIndex])
 		print bound
 
