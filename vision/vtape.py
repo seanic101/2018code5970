@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from location import Location
+from math import tan, radians
 
 cap = cv2.VideoCapture(0)
 
@@ -27,16 +29,59 @@ cap = cv2.VideoCapture(0)
 
 
 contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
-print "old contrast " + str(contrast)
+print("old contrast " + (str(contrast)))
 #default was .433, lower contrast is better
 new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
-print "new contrast " + str(new_con) #-trast
+print("new contrast " + (str(new_con))) #-trast
 
 # Setting of the camera exposure is not supported by this camera
 #old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
 #print "old exposure " + str(old_expo)
 #new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
 #print new_expo
+
+loc = Location()
+
+def centerbox(box):
+	center_x = box.x()+box.w()/2
+	center_y = box.y()+box.h()/2
+	return (center_x, center_y)
+
+FOV_x_deg = 58 # degrees
+FOV_y_deg = 31 # degrees
+
+FOV_x_pix = 640 # pixels
+FOV_y_pix = 480 # pixels
+
+Tape_W = 2.0 # inches
+Tape_H = 15.3 # inches
+
+def offset(center_x, center_y):
+	return (
+		center_x/FOV_x_pix * FOV_x_pix,
+		center_y/FOV_y_pix * FOV_x_pix
+	)
+
+def degreesFOV(offset_x, offset_y):
+	return (
+		offset_x / FOV_x_pix * FOV_x_deg - FOV_x_deg / 2,
+		offset_y / FOV_y_pix * FOV_y_deg - FOV_y_deg / 2
+	)
+
+def where(box):
+	cen_x, cen_y = centerbox(box)
+	off_x, off_y = offset(cen_x, cen_y)
+	return (
+		off_x * (FOV_x_deg / FOV_x_pix),
+		off_y * (FOV_y_deg / FOV_y_pix),
+		distance(box)
+	)
+	
+def distance(box):
+	return (
+		Tape_W / box.w * (box.w / 2) * 
+		math.tan(math.radians(FOV_x_deg / 2))
+	)
 
 while(1):
 	#capture an image
@@ -77,7 +122,7 @@ while(1):
 		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
 		#boundingRect output when printed is the (x,y and w,h)...maybe...pretty sure...
 		bound = cv2.boundingRect(contours[recordIndex])
-		print bound
+		print(bound)
 
 	cv2.imshow('hsv',hsv)
 	
@@ -92,12 +137,6 @@ while(1):
 	#M = cv2.moments(cnt)
 	#print M
 	#print contours
-
-	#approximate shape of object and draw a line surrounding the
-	#object, make polygon a rectangle
-	#epsilon = 0.1*cv2.arcLength(cnt,True)
-	#approx = cv2.approxPolyDP(cnt,epsilon,True)
-	#cv2.imshow('approx', approx)
 
 #ret is return value from the camera frame
 
