@@ -6,7 +6,7 @@ import os
 if not os.path.exists('pos'):
 	os.makedirs('pos')
 pic_num=1
-imgpath = ('sourceimg/')
+imgpath = 'sourceimg/'
 
 for pic in os.listdir('sourceimg/'):
 	img_name = imgpath+pic	
