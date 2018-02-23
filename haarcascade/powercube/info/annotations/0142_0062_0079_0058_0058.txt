@@ -1,0 +1,2 @@
+Image filename : "info/pos/0142_0062_0079_0058_0058.png"
+Bounding box for object 1 "PASperson" (Xmin, Ymin) - (Xmax, Ymax) : (62, 79) - (120, 137)

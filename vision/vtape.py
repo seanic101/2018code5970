@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from location import Location
+from math import sin, radians
 
 cap = cv2.VideoCapture(0)
 
@@ -27,10 +29,10 @@ cap = cv2.VideoCapture(0)
 
 
 contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
-print "old contrast " + str(contrast)
+print("old contrast " + (str(contrast)))
 #default was .433, lower contrast is better
 new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
-print "new contrast " + str(new_con) #-trast
+print("new contrast " + (str(new_con))) #-trast
 
 # Setting of the camera exposure is not supported by this camera
 #old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
@@ -38,6 +40,54 @@ print "new contrast " + str(new_con) #-trast
 #new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
 #print new_expo
 
+loc = Location()
+
+FOV_x_deg = 58.0 # degrees
+FOV_y_deg = 31.0 # degrees
+
+FOV_x_pix = 640.0 # pixels
+FOV_y_pix = 480.0 # pixels
+
+Tape_W = 3.0 # inches
+Tape_H = 15.3 # inches
+
+def centerbox(box):
+	center_x = box.x+box.w/2.0
+	center_y = box.y+box.h/2.0
+	#print(center_x)
+	return (center_x, center_y) #pixels
+
+
+def offset(center_x, center_y):
+	return (
+		center_x/FOV_x_pix,
+		center_y/FOV_y_pix
+	) # pure number - ratio 0-1 of screen until x or y
+
+def distance(box, delta_x_deg, cen_x):
+	half_FOV_x = FOV_x_pix / 2.0
+	inches_per_pixel = Tape_W / box.w
+	dis = (cen_x - half_FOV_x) / sin(radians(delta_x_deg)) #pixels
+	return dis * inches_per_pixel
+
+def where(box):
+	cen_x, cen_y = centerbox(box)
+	off_x, off_y = offset(cen_x, cen_y)
+	delta_x_deg = off_x * FOV_x_deg - FOV_x_deg / 2.0
+	return (
+		delta_x_deg,
+		off_y * FOV_y_deg - FOV_y_deg / 2.0,
+		distance(box, delta_x_deg, cen_x)
+	)	
+
+class Box:
+	def __init__(self, x, y, w, h):
+		self.x = x
+		self.y = y
+		self.w = w
+		self.h = h
+
+import inspect
 while(1):
 	#capture an image
 	_, frame = cap.read() 
@@ -75,40 +125,26 @@ while(1):
 		#print "hello"
 		#drawContours is destructive in OpenCV <3.x.x
 		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
-		#boundingRect output when printed is the (x,y and w,h)...maybe...pretty sure...
+		#boundingRect output when printed is the (x,y and w,h)
 		bound = cv2.boundingRect(contours[recordIndex])
-		print bound
+		
+	
+		#print inspect.getmembers(bound)
+		box = Box(*bound)
+		print where(box)
 
 	cv2.imshow('hsv',hsv)
-	
-
-	# get contours in hopes that these can be converted to
-	# rectangles	
-	#contours,hierarchy = cv2.findContours(thresh, 1, 2)
-	#if not len(contours) > 0:
-		#break
- 
-	#cnt = contours[0]
-	#M = cv2.moments(cnt)
-	#print M
-	#print contours
-
-	#approximate shape of object and draw a line surrounding the
-	#object, make polygon a rectangle
-	#epsilon = 0.1*cv2.arcLength(cnt,True)
-	#approx = cv2.approxPolyDP(cnt,epsilon,True)
-	#cv2.imshow('approx', approx)
-
-#ret is return value from the camera frame
 
 	#result = cv2.bitwise_and(frame, frame, mask = mask)
 	
 	#cv2.imshow('frame', frame)
 	#cv2.imshow('result', result)
 
+	#0xFF means to only look for last bit of the return value of
+ 	#waitKey so shift/alt etc... works
 	k = cv2.waitKey(5) & 0xFF
 	if k == 27:
 		break
-#forgot how 0xFF works...I think it means something to do with wait for 15 characters or something... then quit, esc key closes windows
+
 cv2.destroyAllWindows()
 cap.release()
