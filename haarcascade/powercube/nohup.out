@@ -1,0 +1,54 @@
+PARAMETERS:
+cascadeDirName: data
+vecFileName: positives.vec
+bgFileName: bg.txt
+numPos: 2600
+numNeg: 1300
+numStages: 15
+precalcValBufSize[Mb] : 256
+precalcIdxBufSize[Mb] : 256
+stageType: BOOST
+featureType: HAAR
+sampleWidth: 30
+sampleHeight: 30
+boostType: GAB
+minHitRate: 0.995
+maxFalseAlarmRate: 0.5
+weightTrimRate: 0.95
+maxDepth: 1
+maxWeakCount: 100
+mode: BASIC
+
+===== TRAINING 0-stage =====
+<BEGIN
+OpenCV Error: Assertion failed (_img.rows * _img.cols == vecSize) in get, file /build/opencv-SviWsf/opencv-2.4.9.1+dfsg/apps/traincascade/imagestorage.cpp, line 157
+terminate called after throwing an instance of 'cv::Exception'
+  what():  /build/opencv-SviWsf/opencv-2.4.9.1+dfsg/apps/traincascade/imagestorage.cpp:157: error: (-215) _img.rows * _img.cols == vecSize in function get
+
+PARAMETERS:
+cascadeDirName: data
+vecFileName: positives.vec
+bgFileName: bg.txt
+numPos: 2600
+numNeg: 1300
+numStages: 15
+precalcValBufSize[Mb] : 256
+precalcIdxBufSize[Mb] : 256
+stageType: BOOST
+featureType: HAAR
+sampleWidth: 30
+sampleHeight: 30
+boostType: GAB
+minHitRate: 0.995
+maxFalseAlarmRate: 0.5
+weightTrimRate: 0.95
+maxDepth: 1
+maxWeakCount: 100
+mode: BASIC
+
+===== TRAINING 0-stage =====
+<BEGIN
+OpenCV Error: Assertion failed (_img.rows * _img.cols == vecSize) in get, file /build/opencv-SviWsf/opencv-2.4.9.1+dfsg/apps/traincascade/imagestorage.cpp, line 157
+terminate called after throwing an instance of 'cv::Exception'
+  what():  /build/opencv-SviWsf/opencv-2.4.9.1+dfsg/apps/traincascade/imagestorage.cpp:157: error: (-215) _img.rows * _img.cols == vecSize in function get
+
