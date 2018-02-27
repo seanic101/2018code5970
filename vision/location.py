@@ -1,6 +1,10 @@
+
 class Location(object):
+	#def encode(self, obj):
+	#	return [obj.degrees, obj.azim, obj.distance]
+
 	def __init__(self):
-		print("init")
+		#print("init")
 		self.reset()
 
 	def reset(self):
