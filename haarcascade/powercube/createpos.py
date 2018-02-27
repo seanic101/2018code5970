@@ -1,7 +1,7 @@
 import os
 import re
 
-imgpath = 'pos'
+imgpath = 'resizedpos'
 ls = os.listdir(imgpath)
 ls.sort()
 for pic in ls:
@@ -10,10 +10,9 @@ for pic in ls:
 		print("skipping " + pic)
 		continue
 
-	#os.system('opencv_createsamples -bg bg.txt -info info/info.dat -pngoutput info -maxxangle 0.5 -maxyangle 0.5 -maxzangle 0.5 -num 237 -vec ' + pic + '.vec')
-
 	os.system('opencv_createsamples -bg bg.txt -info info/info.lst'+
 		' -pngoutput info -maxxangle 0.5 -maxyangle 0.5'+
 		' -maxzangle 0.5 -num 237 -img pos/' + pic)
 #changed .dat to .lst
-#will have to do math for the num of samples
+#will have to do math for the specific num of samples
+#script must be run from dir containing positive images intended to become models for combined positives and negatives which will go in the vector file

@@ -2,7 +2,7 @@
 import os
 import re
 
-imgpath = 'pos'
+imgpath = 'posandneg'
 ls = os.listdir(imgpath)
 ls.sort()
 for pic in ls:
