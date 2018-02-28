@@ -32,10 +32,10 @@ if not cap.isOpened():
 # *** not supported by MS camera
 
 
-contrast = cap.get(11)
+contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
 print("old contrast " + (str(contrast)))
 #default was .433, lower contrast is better
-new_con = cap.set(11, 0.1)
+new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
 print("new contrast " + (str(new_con))) #-trast
 
 # Setting of the camera exposure is not supported by this camera
