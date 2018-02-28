@@ -1,9 +1,13 @@
 import numpy as np
 import cv2
 from location import Location
-from math import sin, radians
+from math import sin, radians, sqrt
+import time
 
 cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+	sys.stderr.write("No camera could be opened for capture\n")
+	exit(1)
 
 # Here are the numeric values of the properties that can be set on a VideoCapture:
 # 0. CV_CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
@@ -48,8 +52,10 @@ FOV_y_deg = 31.0 # degrees
 FOV_x_pix = 640.0 # pixels
 FOV_y_pix = 480.0 # pixels
 
-Tape_W = 3.0 # inches
-Tape_H = 15.3 # inches
+#Tape_W = 3.0 # inches
+#Tape_H = 15.3 # inches
+Tape_W = 3.0 # inches of camera box
+Tape_H = 6.0 # inches of camera box
 
 def centerbox(box):
 	center_x = box.x+box.w/2.0
@@ -67,8 +73,12 @@ def offset(center_x, center_y):
 def distance(box, delta_x_deg, cen_x):
 	half_FOV_x = FOV_x_pix / 2.0
 	inches_per_pixel = Tape_W / box.w
-	dis = (cen_x - half_FOV_x) / sin(radians(delta_x_deg)) #pixels
-	return dis * inches_per_pixel
+	tmp = sin(radians(delta_x_deg)) #pixels
+	if tmp != 0.0:
+		dis = (cen_x - half_FOV_x) / tmp  * inches_per_pixel # inches
+	else:
+		dis = -1
+	return dis
 
 def where(box):
 	cen_x, cen_y = centerbox(box)
@@ -89,50 +99,74 @@ class Box:
 
 import inspect
 while(1):
-	#capture an image
-	_, frame = cap.read() 
-	#convert to HSV
+	# capture an image
+	retval, frame = cap.read() 
+	if not retval:
+		time.sleep(1)
+		continue
+	# convert to HSV
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+	# hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 
-	#find green pixels image using limits in in numpy arrays
-	#lower_green = np.array([75,100,150]) 
-	#upper_green = np.array([95,255,255])
+	# find green pixels image using limits in in numpy arrays
+	# lower_green = np.array([75,100,150]) 
+	# upper_green = np.array([95,255,255])
 	lower_green = np.array([75,100,150]) 
 	upper_green = np.array([95,255,255])
 
 
-	#mask filters colors out of the green range from
+	# mask filters colors out of the green range from
 	# the frame being read
 	mask = cv2.inRange(hsv, lower_green, upper_green)
-	#cv2.imshow('mask', mask)
+	# cv2.imshow('mask', mask)
 
-	#pixelates image, does not show small detections
+	# pixelates image, does not show small detections
 	kernel = np.ones((5, 5), np.uint8)
 	erosion = cv2.erode(mask, kernel, iterations=1)
 	cv2.imshow('erosion', erosion)
 
-	#contours the mask
+	# contours the mask
 	contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
-	#finds largest object and contours it, saves in recordIndex
+	#image,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
+	if contours <= 2:
+		continue
+
+	# finds largest object and contours it, saves in recordIndex
 	recordSize = 0
 	recordIndex = -1
 	for i in range(len(contours)):
-		if (cv2.contourArea(contours[i]) > recordSize):
-			recordSize = cv2.contourArea(contours[i])
-			recordIndex = i
+		#if (cv2.contourArea(contours[i]) > recordSize):
+		recordSize = cv2.contourArea(contours[i])
+		recordIndex = i
 	if recordIndex >= 0:
 		#print "hello"
-		#drawContours is destructive in OpenCV <3.x.x
-		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
-		#boundingRect output when printed is the (x,y and w,h)
-		bound = cv2.boundingRect(contours[recordIndex])
 		
-	
-		#print inspect.getmembers(bound)
+####################################################################
+	#Note to Dad: we need the record size bit, trust me. It just
+	#returns the number of contours in the objects it finds
+		x,y,w,h = cv2.boundingRect(contours[recordIndex])
+		aspect_ratio = float(w)/(h)
+
+
+		if (
+		((3.0*((math.sqrt(3.0))/2.0)/15.3) < aspect_ratio and \
+		aspect_ratio < (3.0 / 15.3)
+		):
+
+			continue
+
+####################################################################
+
+
+		# drawContours is destructive in OpenCV <3.x.x
+		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
+		# boundingRect output when printed is the (x,y and w,h)
+		bound = cv2.boundingRect(contours[recordIndex])
+
 		box = Box(*bound)
 		print where(box)
-
 	cv2.imshow('hsv',hsv)
 
 	#result = cv2.bitwise_and(frame, frame, mask = mask)
@@ -140,8 +174,8 @@ while(1):
 	#cv2.imshow('frame', frame)
 	#cv2.imshow('result', result)
 
-	#0xFF means to only look for last bit of the return value of
- 	#waitKey so shift/alt etc... works
+	# 0xFF means to only look for last bit of the return value of
+ 	# waitKey so shift/alt etc... works
 	k = cv2.waitKey(5) & 0xFF
 	if k == 27:
 		break
