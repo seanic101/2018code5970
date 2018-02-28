@@ -28,10 +28,10 @@ cap = cv2.VideoCapture(0)
 # *** not supported by MS camera
 
 
-contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
+contrast = cap.get(11)
 print("old contrast " + (str(contrast)))
 #default was .433, lower contrast is better
-new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
+new_con = cap.set(11, 0.1)
 print("new contrast " + (str(new_con))) #-trast
 
 # Setting of the camera exposure is not supported by this camera
@@ -112,7 +112,7 @@ while(1):
 	cv2.imshow('erosion', erosion)
 
 	#contours the mask
-	contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	image,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
 	#finds largest object and contours it, saves in recordIndex
 	recordSize = 0
@@ -131,7 +131,7 @@ while(1):
 	
 		#print inspect.getmembers(bound)
 		box = Box(*bound)
-		print where(box)
+		print(where(box))
 
 	cv2.imshow('hsv',hsv)
 
