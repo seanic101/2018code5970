@@ -236,7 +236,28 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         """This function is called periodically during test mode."""
    
 
-    def drivetrainMotorControl(self):
+    
+	# PID Values
+        self.P = 1
+        self.I = 1
+        self.D = 1
+
+        self.integral = 0
+        self.previous_error = 0
+
+
+    def setSetpoint(self, setpoint):
+        self.setpoint = setpoint
+
+    def PID(self):
+        """PID for angle control"""
+        error = self.setpoint - self.gyro.getAngle() # Error = Target - Actual
+        self.integral = integral + (error*.02)
+        derivative = (error - self.previous_error) / .02
+        self.rcw = self.P*error + self.I*self.integral + self.D*derivative
+
+	
+	def drivetrainMotorControl(self):
             right = self.steering.getY()
             left = self.throttle.getY()
             drive_powers = drive.tankdrive(right*-1, left*-1)
