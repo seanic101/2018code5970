@@ -34,9 +34,9 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
 
         # Initialize the InCube Motor
         self.RnCube_motor = []
-        self.RnCube_motor.append(wpilib.VictorSP(7))
+        self.RnCube_motor.append(wpilib.Spark(7))
         self.LnCube_motor = []
-        self.LnCube_motor.append(wpilib.VictorSP(8))
+        self.LnCube_motor.append(wpilib.Spark(8))
         
         #initialize the updaisy motor
         self.Updaisy_motor = []
