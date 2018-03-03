@@ -34,9 +34,9 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
 
         # Initialize the InCube Motor
         self.RnCube_motor = []
-        self.RnCube_motor.append(wpilib.Spark(7))
+        self.RnCube_motor.append(wpilib.Spark(6))
         self.LnCube_motor = []
-        self.LnCube_motor.append(wpilib.Spark(8))
+        self.LnCube_motor.append(wpilib.Spark(7))
         
         #initialize the updaisy motor
         self.Updaisy_motor = []
@@ -44,7 +44,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         
         # Initialize the Gteen Motor
         self.Gteen_motor = []
-        self.Gteen_motor.append(wpilib.VictorSP(6))
+        self.Gteen_motor.append(wpilib.VictorSP(8))
         
         #initialize the ultrasonic sensor
         #self.Ultra = wpilib.AnalogInput(3)
@@ -72,11 +72,13 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.Gteencont = wpilib.Joystick(2)
 
         #got the pinouts off of google need to test
-        self.InCubeUp = JoystickButton(self.Gteencont,1)
-        self.InCubeDown = JoystickButton(self.Gteencont, 2)
-        self.Updaisy = JoystickButton(self.Gteencont, 3)
-        self.Downdaisy = JoystickButton(self.Gteencont, 4)
-
+        self.InCubeUp = JoystickButton(self.Gteencont,3)
+        self.SeanInCubeUp =JoystickButton(self.throttle,3)
+        self.SeanInCubeDown =JoystickButton(self.throttle,4)
+        self.InCubeDown = JoystickButton(self.Gteencont, 4)
+        self.Updaisy = JoystickButton(self.Gteencont, 5)
+        self.Downdaisy = JoystickButton(self.Gteencont, 6)
+        self.UpClimber = JoystickButton(self.Gteencont, 1)
         #self.pop = JoystickButton(self.xbox, 3)#Y
         self.pop = JoystickButton(self.steering, 1)#Y
         self.Lshift = wpilib.Solenoid(0)
@@ -98,7 +100,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #print("here")
         self.Lcoder.reset()
         self.Rcoder.reset()
-        self.stage = -5
+        self.stage = -1
         #self.cap = cv2.VideoCapture(0)
         #self.new_con = self.cap.set(11, 0.1)
         #print("new contrast " + (str(self.new_con))) #-trast
@@ -129,14 +131,17 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         data = wpilib.DriverStation.getInstance().getGameSpecificMessage()
         #print(data)
         
-        if self.stage == -5:
-            if data.find("R") == 0:
-                self.stage=50
-            elif data.find("L") == 0:
-                self.stage=0           
+        if self.stage == -1:
+            if data.find("R",0,0) == 0:
+                    self.stage=0 
+            elif data.find("L",0,0) == 0:
+                self.stage=1000
         
         
-        if self.stage ==0:
+        #**************************************************
+        # For left side box run
+        #**************************************************
+        '''if self.stage ==0:
             self.setDriveMotors(0,0)
             self.Gyroo.calibrate()
             self.Rcoder.reset()
@@ -145,14 +150,14 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         
         #n = self.PID()
         elif self.stage ==1:
-            if self.Rcoder.get() >= -7500:
+            if self.Rcoder.get() <= 7100:
                 x=self.Gyroo.getAngle()
                 #print("the gyro is: "+str(x))
                 y=self.Rcoder.get()
                 #print(y)
                 print("the Left value is: "+str(y))
                 #print("the Right value is: .25")
-                self.setDriveMotors(-.27,.25)
+                self.setDriveMotors(-.25,.25)
             else:
                 self.Rcoder.reset()
                 self.setDriveMotors(0,0)
@@ -162,22 +167,29 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             self.setDriveMotors(.45,.45)
             x=self.Gyroo.getAngle()
             print(x)
-            if int(x) >= 85:
+            if int(x) >= 90:
                 self.Rcoder.reset()
                 self.setDriveMotors(0,0)
                 self.stage = 3
                 
         elif self.stage ==3:
             print(self.Rcoder.get())
-            if self.Rcoder.get() >= -1000:
-                self.setDriveMotors(-.26,.25)
+            if self.Rcoder.get() <= 1000:
+                self.setDriveMotors(-.25,.25)
             else:
                 self.Rcoder.reset()
+                self.auto_loop_counter = 0
                 self.stage = 4
-        
         elif self.stage ==4:
-            if self.Rcoder.get() <= 1000:
-                self.setDriveMotors(.26,-.25)
+            if self.auto_loop_counter < 100:
+                self.AutoInCube(1)
+            else:
+                self.AutoInCube(0)
+                self.stage =4.5
+                
+        elif self.stage ==4.5:
+            if self.Rcoder.get() >= -1000:
+                self.setDriveMotors(.25,-.25)
             else:
                 self.Rcoder.reset()
                 self.stage = 5
@@ -194,7 +206,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         
         elif self.stage ==6:
             print(self.Rcoder.get())
-            if self.Rcoder.get() >= -1000:
+            if self.Rcoder.get() <= 1000:
                 self.setDriveMotors(-.25,.25)
             else:
                 self.setDriveMotors(0,0)
@@ -203,8 +215,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 
                 
 #*************************************************************************************************
-#*************************************************************************************************
-#*************************************************************************************************
+#for right side gear(wont work)
 #*************************************************************************************************
         elif self.stage ==50:
             self.setDriveMotors(0,0)
@@ -226,7 +237,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             else:
                 self.Rcoder.reset()
                 self.setDriveMotors(0,0)
-                self.stage = 52
+                self.stage = 99
         
         elif self.stage ==52:
             self.setDriveMotors(.45,.45)
@@ -239,7 +250,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 
         elif self.stage ==53:
             print(self.Rcoder.get())
-            if self.Rcoder.get() >= -1000:
+            if self.Rcoder.get() >= -5000:
                 self.setDriveMotors(-.26,.25)
             else:
                 self.Rcoder.reset()
@@ -269,22 +280,135 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             else:
                 self.setDriveMotors(0,0)
                 self.Rcoder.reset()
-                self.stage = -1
+                self.stage = 99
+#*************************************************************************************************
+#for LEFT side box ON THE SWITCH(wont work)
+#*************************************************************************************************
 
+        if self.stage ==150:
+                    self.setDriveMotors(0,0)
+                    self.Gyroo.calibrate()
+                    self.Rcoder.reset()
+                    self.stage =151
+        
+        
+        #n = self.PID()
+        elif self.stage ==151:
+            if self.Rcoder.get() >= -5000:
+                y=self.Rcoder.get()
+                #print(y)
+                #print("the Left value is: "+str(y))
+                self.setDriveMotors(-.27,.25)
+            else:
+                self.Rcoder.reset()
+                self.setDriveMotors(0,0)
+                self.stage =152 
+        
+        elif self.stage ==152:#get back to 0 
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) == 0:
+                self.Rcoder.reset()
+                self.setDriveMotors(0,0)
+                self.stage = 153
+            elif int(x) > 0:
+                self.setDriveMotors(-.25,-.25)
+            elif int(x) < 0:
+                self.setDriveMotors(.25,.25)
 
+        elif self.stage == 153:        
+            if self.Rcoder.get() >= -5000:
+                y=self.Rcoder.get()
+                #print(y)
+                #print("the Left value is: "+str(y))
+                self.setDriveMotors(-.27,.25)
+            else:
+                self.Rcoder.reset()
+                self.setDriveMotors(0,0)
+                self.stage =154
 
+        elif self.stage ==154:#get back to 0 
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) == 0:
+                self.Rcoder.reset()
+                self.setDriveMotors(0,0)
+                self.stage = 99
+            elif int(x) > 0:
+                self.setDriveMotors(-.25,-.25)
+            elif int(x) < 0:
+                self.setDriveMotors(.25,.25)'''
 
-
-
-
+        if self.stage ==0:
+            self.setDriveMotors(0,0)
+            self.Gyroo.calibrate()
+            self.Rcoder.reset()
+            self.stage =1
+            self.auto_loop_counter = 0
+        
+        
+        #n = self.PID()
+        elif self.stage ==1:
+            if self.auto_loop_counter <= 250:
+                self.setDriveMotors(-.25,.25)
+                self.auto_loop_counter= self.auto_loop_counter+1
+            else:
+                self.setDriveMotors(0,0)
+                self.stage =2           
+        elif self.stage ==2:
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) <= 87:
+                self.setDriveMotors(.35,.35)
+            else:
+                self.setDriveMotors(0,0)
+                self.stage = 3
+        elif self.stage ==3:
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) >= -87:
+                self.setDriveMotors(-.35,-.35)
+            else:
+                self.setDriveMotors(0,0)
+                self.stage = 4
 
                 
 #*************************************************************************************************
 #*************************************************************************************************
 #*************************************************************************************************
 #*************************************************************************************************
-              
+        if self.stage ==1000:
+            self.setDriveMotors(0,0)
+            self.Gyroo.calibrate()
+            self.Rcoder.reset()
+            self.stage =1001
+            self.auto_loop_counter = 0
         
+        
+        #n = self.PID()
+        elif self.stage ==1001:
+            if self.auto_loop_counter <= 250:
+                self.setDriveMotors(-.25,.25)
+                self.auto_loop_counter= self.auto_loop_counter+1
+            else:
+                self.setDriveMotors(0,0)
+                self.stage =1002           
+        elif self.stage ==1002:
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) <= 87:
+                self.setDriveMotors(.35,.35)
+            else:
+                self.setDriveMotors(0,0)
+                self.stage = 1003
+        elif self.stage ==1003:
+            x=self.Gyroo.getAngle()
+            print(x)
+            if int(x) >= -87:
+                self.setDriveMotors(-.35,-.35)
+            else:
+                self.setDriveMotors(0,0)
+                self.stage = 1004
         
         '''elif self.stage ==4:
             self.setDriveMotors(.35,-.35)
@@ -361,7 +485,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         """This function is called periodically during operator control."""
         self.drivetrainMotorControl()#driving motors
         self.InCube()#intake/outake
-        self.Pop() #shifters
+        #self.Pop() #shifters
         self.Gteen()#raise and lower Gteen
         self.Upsydaisy()#raise and lower intake
     
@@ -393,9 +517,18 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             motor.set(value)
             #print(value)
     
-    def GteenAuto(self,needed):
-        for motor in self.Gteen_motor:
-         motor.set(needed)
+    def AutoInCube(self,what):#intake function
+        if self.InCubeUp.get():
+            if what == 1:
+                for motor in self.LnCube_motor:
+                    motor.set(1)
+                for motor in self.RnCube_motor:
+                    motor.set(1)
+            else:
+                for motor in self.LnCube_motor:
+                    motor.set(0)
+                for motor in self.RnCube_motor:
+                    motor.set(0)
     
     def drivetrainMotorControl(self):
             right = self.steering.getY()
@@ -413,42 +546,50 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 motor.set(rightspeed*-1)
 
     def InCube(self):#intake function
-        if self.InCubeUp.get():
+        if self.InCubeUp.get() or self.SeanInCubeUp.get():
             for motor in self.LnCube_motor:
-                motor.set(1)
+                motor.set(2.003)
             for motor in self.RnCube_motor:
-                motor.set(-1)
-        elif self.InCubeDown.get():
+                motor.set(-2.003)
+        elif self.InCubeDown.get() or self.SeanInCubeDown.get():
             for motor in self.LnCube_motor:
-                motor.set(-1)
+                motor.set(-2.003)
             for motor in self.RnCube_motor:
-                motor.set(1)
+                motor.set(2.003)
         else:
             for motor in self.LnCube_motor:
                 motor.set(0)
             for motor in self.RnCube_motor:
                 motor.set(0)
                 
-    def Upsydaisy(self):#intake function
+    def Upsydaisy(self):#intake winch function
         if self.Updaisy.get():
             for motor in self.Updaisy_motor:
-                motor.set(1)
+                motor.set(1.0)
         elif self.Downdaisy.get():
             for motor in self.Updaisy_motor:
                 motor.set(-1)
         else:
             for motor in self.Updaisy_motor:
                 motor.set(0)
+                
+    def Climber(self):#Climber winch function
+        if self.UpClimber.get():
+            for motor in self.UpClimber_motor:
+                motor.set(1)
+        else:
+            for motor in self.UpClimber_motor:
+                motor.set(0)
 
     def Pop(self):
         if self.pop.get():
-            self.Lshift.set(True)
-            self.Rshift.set(True)
+            self.Lshift.set(1)
+            self.Rshift.set(1)
             #for motor in self.pop_motor:
                 #motor.set(1)
         else:
-            self.Lshift.set(False)
-            self.Rshift.set(False)
+            self.Lshift.set(0)
+            self.Rshift.set(0)
             #for motor in self.pop_motor:
                 #motor.set(0)
 
