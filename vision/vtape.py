@@ -1,8 +1,14 @@
+# vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
+
 import numpy as np
 import cv2
 from location import Location
 from math import sin, radians, sqrt
 import time
+
+DEBUG = True
+if DEBUG:
+	import inspect
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -44,7 +50,13 @@ print("new contrast " + (str(new_con))) #-trast
 #new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
 #print new_expo
 
-loc = Location()
+LOC = Location()
+
+def setLocation(degrees, azim, distance):
+	with MUTEX:
+		LOC.degrees  = degrees
+		LOC.azim     = azim
+		LOC.distance = distance
 
 FOV_x_deg = 58.0 # degrees
 FOV_y_deg = 31.0 # degrees
@@ -54,8 +66,10 @@ FOV_y_pix = 480.0 # pixels
 
 #Tape_W = 3.0 # inches
 #Tape_H = 15.3 # inches
-Tape_W = 3.0 # inches of camera box
-Tape_H = 6.0 # inches of camera box
+#Big_W = 8.0 # inches: distance from outer edges of tape in x
+Big_W = 5.1 # inches: distance from outer edges of tape in x
+Tape_W = 1.5 # inches of camera box
+Tape_H = 3.0 # inches of camera box
 
 def centerbox(box):
 	center_x = box.x+box.w/2.0
@@ -70,12 +84,12 @@ def offset(center_x, center_y):
 		center_y/FOV_y_pix
 	) # pure number - ratio 0-1 of screen until x or y
 
-def distance(box, delta_x_deg, cen_x):
+def my_distance(box, delta_x_deg, cen_x):
 	half_FOV_x = FOV_x_pix / 2.0
-	inches_per_pixel = Tape_W / box.w
+	inches_per_pixel = Big_W / box.w
 	tmp = sin(radians(delta_x_deg)) #pixels
 	if tmp != 0.0:
-		dis = (cen_x - half_FOV_x) / tmp  * inches_per_pixel # inches
+		dis = (cen_x - half_FOV_x) / tmp * inches_per_pixel # inches
 	else:
 		dis = -1
 	return dis
@@ -87,7 +101,7 @@ def where(box):
 	return (
 		delta_x_deg,
 		off_y * FOV_y_deg - FOV_y_deg / 2.0,
-		distance(box, delta_x_deg, cen_x)
+		my_distance(box, delta_x_deg, cen_x)
 	)	
 
 class Box:
@@ -96,89 +110,179 @@ class Box:
 		self.y = y
 		self.w = w
 		self.h = h
+	
+	def __set_x(self, x):
+		self.__x = x
+	def __set_y(self, y):
+		self.__y = y
+	def __set_w(self, w):
+		self.__w = w
+	def __set_h(self, h):
+		self.__h = h
 
-import inspect
-while(1):
-	# capture an image
-	retval, frame = cap.read() 
-	if not retval:
-		time.sleep(1)
-		continue
-	# convert to HSV
-	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-	# hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+	def __get_x(self):
+		return self.__x
+	def __get_y(self):
+		return self.__y
+	def __get_w(self):
+		return self.__w
+	def __get_h(self):
+		return self.__h
 
-	# find green pixels image using limits in in numpy arrays
-	# lower_green = np.array([75,100,150]) 
-	# upper_green = np.array([95,255,255])
-	lower_green = np.array([75,100,150]) 
-	upper_green = np.array([95,255,255])
+	x = property(__set_x, __get_x)
+	y = property(__set_y, __get_y)
+	w = property(__set_w, __get_w)
+	h = property(__set_h, __get_h)
 
+	def bb(self):
+		return (x, y, x+w, y+h)
 
-	# mask filters colors out of the green range from
-	# the frame being read
-	mask = cv2.inRange(hsv, lower_green, upper_green)
-	# cv2.imshow('mask', mask)
+def bb_of_two(boxA, boxB):
+	x1A, y1A, x2A, y2A = boxA.bb()
+	x1B, y1B, x2B, y2B = boxB.bb()
+	ulx = min(x1A, x1B)
+	uly = min(y1A, y1B)
+	lrx = max(x2A, x2B)
+	lry = max(y2A, y2B)
+	w = lrx - ulx
+	h = lry - uly
+	return Box(ulx, uly, w, h)
 
-	# pixelates image, does not show small detections
-	kernel = np.ones((5, 5), np.uint8)
-	erosion = cv2.erode(mask, kernel, iterations=1)
-	cv2.imshow('erosion', erosion)
+def find_tape():
+	while True:
 
-	# contours the mask
-	contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-
-	#image,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-
-	if contours <= 2:
-		continue
-
-	# finds largest object and contours it, saves in recordIndex
-	recordSize = 0
-	recordIndex = -1
-	for i in range(len(contours)):
-		#if (cv2.contourArea(contours[i]) > recordSize):
-		recordSize = cv2.contourArea(contours[i])
-		recordIndex = i
-	if recordIndex >= 0:
-		#print "hello"
-		
-####################################################################
-	#Note to Dad: we need the record size bit, trust me. It just
-	#returns the number of contours in the objects it finds
-		x,y,w,h = cv2.boundingRect(contours[recordIndex])
-		aspect_ratio = float(w)/(h)
-
-
-		if (
-		((3.0*((math.sqrt(3.0))/2.0)/15.3) < aspect_ratio and \
-		aspect_ratio < (3.0 / 15.3)
-		):
-
+		if not USING_TAPE:
+			time.sleep(0.1)
 			continue
 
-####################################################################
-
-
-		# drawContours is destructive in OpenCV <3.x.x
-		cv2.drawContours(hsv,contours,recordIndex,(0,255,0),3)
-		# boundingRect output when printed is the (x,y and w,h)
-		bound = cv2.boundingRect(contours[recordIndex])
-
-		box = Box(*bound)
-		print(where(box))
-	cv2.imshow('hsv',hsv)
-
-	#result = cv2.bitwise_and(frame, frame, mask = mask)
+		# capture an image
+		retval, frame = cap.read() 
+		if not retval:
+			time.sleep(1)
+			continue
+		# convert to HSV
+		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+		# hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 	
-	#cv2.imshow('frame', frame)
-	#cv2.imshow('result', result)
+		# find green pixels image using limits in in numpy arrays
+		# lower_green = np.array([75,100,150]) 
+		# upper_green = np.array([95,255,255])
+		lower_green = np.array([75,100,150]) 
+		upper_green = np.array([95,255,255])
+	
+	
+		# mask filters colors out of the green range from
+		# the frame being read
+		mask = cv2.inRange(hsv, lower_green, upper_green)
+		# cv2.imshow('mask', mask)
+	
+		# pixelates image, does not show small detections
+		kernel = np.ones((5, 5), np.uint8)
+		erosion = cv2.erode(mask, kernel, iterations=1)
+	
+		if DEBUG:
+			cv2.imshow('erosion', erosion)
+	
+		# contours the mask
+		contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	
+		#image,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	
+		# min_apect occurs when object is +/- 30 degrees off center
+		min_aspect = Tape_W * sqrt(3.0) / 2.0 /15.3
+		# max_apect occurs when object is directly in front of camera
+		max_aspect = Tape_W / Tape_H
+		
+		# finds pairs of contours whose bounding rectangles have suitable
+		# aspect ratios
+		candidates = []
+	
+		for i in range(len(contours)):
+			x,y,w,h = cv2.boundingRect(contours[i])
+	
+			if w < 10 or h < 10:
+				continue
+	
+			aspect_ratio = float(w)/(h)
+			if aspect_ratio < min_aspect or aspect_ratio > max_aspect:
+				continue
+	
+			candidates.append({ "x":x, "y":y, "w":w, "h":h })
+	
+		if len(candidates) >= 2:
+			candidates.sort(key=lambda o: o["h"], reverse=True)
+			print "candidates " + str(candidates)
+	
+			for i in range(len(candidates)-1):
+				# through out any candidates have poorly matching y values
+				if abs(candidates[i]["y"] - candidates[i+1]["y"]) > (26):
+					print("aaa")
+					continue
+	
+				# through out any candidates have poorly matching h values
+				del_h = abs(candidates[i]["h"] - candidates[i+1]["h"])
+				if del_h > (candidates[i]["h"] * 0.1):
+					print("bbb")
+					continue
+	
+				print("XXXXXX")
+	
+				box = candidates[i]
+				box1 = Box(
+					 box["x"],            box["y"],
+					 box["x"] + box["w"], box["y"] + box["h"])
+				box = candidates[i+1]
+				box2 = Box(
+					 box["x"],            box["y"],
+					 box["x"] + box["w"], box["y"] + box["h"])
+	
+				big_box = bb_of_two(box1, box2)
+				degrees, azim, distance = where(big_box)
+	
+				# Set location of the big box
+				setLocation(degrees, azim, distance)
+	
+				if DEBUG:
+					box = candidates[i]
+					cv2.rectangle(hsv,
+						( box["x"],            box["y"]),
+						( box["x"] + box["w"], box["y"] + box["h"]),
+						(0,255,0),3)
+					box = candidates[i+1]
+					cv2.rectangle(hsv,
+						( box["x"],            box["y"]),
+						( box["x"] + box["w"], box["y"] + box["h"]),
+						(0,255,0),3)
+					cv2.imshow('hsv',hsv)
+	
+						# drawContours is destructive in OpenCV <3.x.x
+						#cv2.drawContours(hsv,candidates,i,(0,255,0),3)
+						#cv2.drawContours(hsv,candidates,i+1,(0,255,0),3)
+						#cv2.drawContours(hsv,contours,1,(0,255,0),3)
+			
+					# boundingRect output when printed is the (x,y and w,h)
+					#bound0= cv2.boundingRect(contours[candidates[i]])
+					#bound1= cv2.boundingRect(contours[candidates[i+1]])
+	
+			#print "bound0 " + str(bound0)
+	
+			#box = Box(*bound0)
+			#print(where(box))
+			#box = Box(*bound1)
+			#print(where(box))
+	
+	
+		#result = cv2.bitwise_and(frame, frame, mask = mask)
+		
+		#cv2.imshow('frame', frame)
+		#cv2.imshow('result', result)
+	
+		# 0xFF means to only look for last bit of the return value of
+	 	# waitKey so shift/alt etc... works
+		k = cv2.waitKey(5) & 0xFF
+		if k == 27:
+			break
 
-	# 0xFF means to only look for last bit of the return value of
- 	# waitKey so shift/alt etc... works
-	k = cv2.waitKey(5) & 0xFF
-	if k == 27:
-		break
-
-cv2.destroyAllWindows()
+if DEBUG:	
+	cv2.destroyAllWindows()
 cap.release()
