@@ -9,7 +9,7 @@ pic_num=1
 imgpath = 'sourceimg/'
 
 for pic in os.listdir('sourceimg/'):
-	img_name = imgpath+pic	
+	img_name = imgpath+pic
 	print img_name
 	print "hi"
 	img = cv2.imread(img_name,cv2.IMREAD_GRAYSCALE)
