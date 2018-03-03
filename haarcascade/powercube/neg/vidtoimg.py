@@ -5,6 +5,9 @@ import re
 vidcap = cv2.VideoCapture('IMG_0708.mov')
 success,image = vidcap.read()
 count = 0
+
+def vidlen(vidcap):
+	
 success = True
 while success:
 	success,image = vidcap.read()
