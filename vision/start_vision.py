@@ -15,10 +15,14 @@ import daemon
 from daemon import pidfile
 from multiprocessing import Process, Lock
 from vtape import find_tape
+from location import Location
 
-# in competition
+LOC = Location()
+
+# in competition the following is the roborio
 #TCP_IP = '10.59.70.2'
-# in test
+# in competition the TX1 should be 10.59.70.12
+# in test we use this
 TCP_IP = '127.0.0.1'
 
 TCP_PORT = 5005
@@ -47,14 +51,14 @@ def main(logf):
 	logger.addHandler(fh)
 
 	# Start vision system for tape
-	tape_process = Process(target = find_tape, args = ())
+	tape_process = Process(target = find_tape, args = (LOC,))
 	tape_process.start()
 
 	# Start vision system for powercube
 	# XXX
 
 	# Start server to supply roborio with values
-	server_process = Process(target = jetson_server, args = (TCP_IP, TCP_PORT,))
+	server_process = Process(target = jetson_server, args = (LOC, TCP_IP, TCP_PORT,))
 	server_process.start()
 
 	# When server shuts down bring down others...

@@ -6,6 +6,8 @@ from location import Location
 from math import sin, radians, sqrt
 import time
 
+USING_TAPE = False
+
 DEBUG = True
 if DEBUG:
 	import inspect
@@ -50,13 +52,12 @@ print("new contrast " + (str(new_con))) #-trast
 #new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
 #print new_expo
 
-LOC = Location()
 
-def setLocation(degrees, azim, distance):
+def setLocation(loc, degrees, azim, distance):
 	with MUTEX:
-		LOC.degrees  = degrees
-		LOC.azim     = azim
-		LOC.distance = distance
+		loc.degrees  = degrees
+		loc.azim     = azim
+		loc.distance = distance
 
 FOV_x_deg = 58.0 # degrees
 FOV_y_deg = 31.0 # degrees
@@ -148,7 +149,7 @@ def bb_of_two(boxA, boxB):
 	h = lry - uly
 	return Box(ulx, uly, w, h)
 
-def find_tape():
+def find_tape(loc):
 	while True:
 
 		if not USING_TAPE:
@@ -240,7 +241,7 @@ def find_tape():
 				degrees, azim, distance = where(big_box)
 	
 				# Set location of the big box
-				setLocation(degrees, azim, distance)
+				setLocation(loc, degrees, azim, distance)
 	
 				if DEBUG:
 					box = candidates[i]

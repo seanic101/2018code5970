@@ -2,14 +2,14 @@
 # vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
 
 import socket
-#import os
+import sys
 import re
 import json
 from location import Location
 
 RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)
-POWERCUBUE_LOCATION = Location()
-TAPE_LOCATION = Location()
+#POWERCUBUE_LOCATION = Location()
+TAPE_LOCATION = None
 BUFFER_SIZE = 20  # Normally 1024, but we want fast response
 
 DEBUG = False
@@ -61,13 +61,12 @@ def reset_tape():
 def locate_powercube():
 	# XXX phoney location until we serialize Location class
 	return "Success:" + (
-		json.dumps({[45.0, 10.0, 100]}, ensure_ascii=False)
+		json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
 	)
 
 def locate_tape():
-	# XXX phoney location until we serialize Location class
 	return "Success:" + (
-		json.dumps({[45.0, 10.0, 100]}, ensure_ascii=False)
+		json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
 	)
 
 def shutdown():
@@ -86,7 +85,8 @@ def debug_off():
 	close_debug()
 	return RSP_DEFAULT
 
-def jetson_server(tcp_ip_address, tcp_port):
+def jetson_server(loc, tcp_ip_address, tcp_port):
+	TAPE_LOCATION = loc
 	MY_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	MY_SOCKET.bind((tcp_ip_address, tcp_port))
 	MY_SOCKET.listen(1)
