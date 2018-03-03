@@ -1,8 +1,7 @@
 #!/usr/bin/python
+# vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
 
 import socket
-import sys
-sys.path.insert(0, '..')
 #import os
 import re
 import json
@@ -11,6 +10,8 @@ from location import Location
 RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)
 POWERCUBUE_LOCATION = Location()
 TAPE_LOCATION = Location()
+BUFFER_SIZE = 20  # Normally 1024, but we want fast response
+
 DEBUG = False
 
 def init_debug(filename):
@@ -70,8 +71,8 @@ def locate_tape():
 	)
 
 def shutdown():
-	conn.send("Shutting down...")
-	conn.close()
+	MY_CONN.send("Shutting down...")
+	MY_CONN.close()
 	sys.exit(0)
 	return RSP_DEFAULT
 
@@ -85,56 +86,55 @@ def debug_off():
 	close_debug()
 	return RSP_DEFAULT
 
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5005
-BUFFER_SIZE = 20  # Normally 1024, but we want fast response
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((TCP_IP, TCP_PORT))
-s.listen(1)
-
-conn, addr = s.accept()
-debug_out('Connection address: <' + str(addr) + '>')
-while 1:
-	data = conn.recv(BUFFER_SIZE)
-	if not data:
-		stderrout("receiving data")
-		continue
-
-	debug_out("received data: <" + data + '>')
-
-	# parse the command out of data, return cmd and json args
-	cmd, json_data = parse(data)
-	decoded = decode_json(json_data)
+def jetson_server(tcp_ip_address, tcp_port):
+	MY_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	MY_SOCKET.bind((tcp_ip_address, tcp_port))
+	MY_SOCKET.listen(1)
 	
-	# route command to the handler method
-	if cmd == 'reset_powercube':
-		rsp = reset_powercube()
-
-	elif cmd == 'reset_tape':
-		rsp = reset_tape()
-
-	elif cmd == 'locate_powercube':
-		rsp = locate_powercube()
-
-	elif cmd == 'locate_tape':
-		rsp = locate_tape()
-
-	elif cmd == 'shutdown':
-		rsp = shutdown()
-
-	elif cmd == 'debug_on':
-		rsp = debug_on(decoded)
-
-	elif cmd == 'debug_off':
-		rsp = debug_off()
-
-	else:
-		s = "Not a command: " + cmd
-		stderrout(s)
-		rsp = "Error:" + s
-
-	# send handler response back
-	conn.send(rsp)
-
-
+	MY_CONN, MY_ADDR = MY_SOCKET.accept()
+	debug_out('Connection address: <' + str(MY_ADDR) + '>')
+	while True:
+		data = MY_CONN.recv(BUFFER_SIZE)
+		if not data:
+			stderrout("receiving data")
+			continue
+	
+		debug_out("received data: <" + data + '>')
+	
+		# parse the command out of data, return cmd and json args
+		cmd, json_data = parse(data)
+		decoded = decode_json(json_data)
+		
+		# route command to the handler method
+		if cmd == 'reset_powercube':
+			rsp = reset_powercube()
+	
+		elif cmd == 'reset_tape':
+			rsp = reset_tape()
+	
+		elif cmd == 'locate_powercube':
+			USING_TAPE = False
+			USING_CUBE = True
+			rsp = locate_powercube()
+	
+		elif cmd == 'locate_tape':
+			USING_TAPE = True
+			USING_CUBE = False
+			rsp = locate_tape()
+	
+		elif cmd == 'shutdown':
+			rsp = shutdown()
+	
+		elif cmd == 'debug_on':
+			rsp = debug_on(decoded)
+	
+		elif cmd == 'debug_off':
+			rsp = debug_off()
+	
+		else:
+			s = "Not a command: " + cmd
+			stderrout(s)
+			rsp = "Error:" + s
+	
+		# send handler response back
+		MY_CONN.send(rsp)
