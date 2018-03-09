@@ -1,0 +1,29 @@
+# Written by Beavertronics FIRST Robotics Team 5970 to start its
+# Jetson TX1 server.
+[Unit]
+Description=Jetson TX1 Server for Beavertronics 5970 Functions
+Documentation=https://wiki.ubuntu.com/SystemdForUpstartUsers
+Wants=network-online.target
+After=network-online.target
+
+
+[Service]
+Type=forking
+# if the location of start_vision.py changes it affects the next two
+# lines / directives
+ExecStart=/bin/sh -ec '/home/nvidia/opencv_workspace/robotgit/2018code5970/vision/start_vision.py --daemon --pidfile=/tmp/start_vision.pid'
+WorkingDirectory=/home/nvidia/opencv_workspace/robotgit/2018code5970/vision
+
+# Optional environment settings can be put in the file below
+EnvironmentFile=-/etc/default/jetson
+
+# For debugging maybe setting 'null' to 'tty' would work?
+StandardOutput=null
+StandardError=null
+User=nvidia
+Group=nvidia
+PIDFile=/tmp/start_vision.pid
+
+#[Install]
+#WantedBy=multi-user.target
+
