@@ -2,6 +2,15 @@
 # vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
 #
 # Starts vision system
+#
+# This is started at system boot as a service.  If the location of the
+# directory holding this file changes, it must be reflected in:
+#	/lib/systemd/system/jetson.service
+# If the above file is modified, run as root:
+#	systemctl daemon-reload
+#	systemctl start jetson
+# To shut down the vision system, run as root:
+#	systemctl stop jetson
 
 import sys
 sys.path.insert(0, 'tcp')
@@ -37,7 +46,7 @@ debug_p = False
 MUTEX = Lock()
 
 def main(logf):
-	logger = logging.getLogger('jetson_tx1')
+	logger = logging.getLogger('jetson')
 	logger.setLevel(logging.INFO)
 
 	fh = logging.FileHandler(logf)
@@ -79,19 +88,21 @@ def start_daemon(pidf, logf):
 		pidfile=pidfile.TimeoutPIDLockFile(pidf),
 		uid=1001, gid=1001) as context:
 		main(logf)
-		#working_directory='/var/lib/jetson_tx1',
-
 
 if __name__ == "__main__":
 	#reset_camera()
 	parser = argparse.ArgumentParser(
 		description="Beavertronics Jetson TX1 daemon")
-	parser.add_argument('-p', '--pid-file', default='/var/run/jetson_tx1/start_vision.pid')
-	parser.add_argument('-l', '--log-file', default='/var/log/jetson_tx1/start_vision.log')
+	parser.add_argument('-p', '--pidfile', default='/tmp/start_vision.pid')
+	parser.add_argument('-l', '--logfile', default='/tmp/start_vision.log')
+
+	# to satisfy the requirement of systemd that forking process types use
+	# a --daemon flag
+	parser.add_argument('-d', '--daemon', action='store_true')
 
 	args = parser.parse_args()
 
-	start_daemon(pidf=args.pid_file, logf=args.log_file)
+	start_daemon(pidf=args.pidfile, logf=args.logfile)
 
 
 #def reset_camera():

@@ -14,6 +14,20 @@ BUFFER_SIZE = 20  # Normally 1024, but we want fast response
 
 DEBUG = False
 
+import signal
+import time
+
+# Handle TERM and INT signals so we can close the network
+# connection cleanly
+class GracefulKiller:
+	kill_now = False
+	def __init__(self):
+		signal.signal(signal.SIGINT, self.exit_gracefully)
+		signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+	def exit_gracefully(self,signum, frame):
+		self.kill_now = True
+
 def init_debug(filename):
 	if not DEBUG:
 		DEBUG_LOG = open(filename, 'w')
@@ -70,9 +84,6 @@ def locate_tape():
 	)
 
 def shutdown():
-	MY_CONN.send("Shutting down...")
-	MY_CONN.close()
-	sys.exit(0)
 	return RSP_DEFAULT
 
 def debug_on(decoded):
@@ -87,14 +98,15 @@ def debug_off():
 
 def jetson_server(loc, tcp_ip_address, tcp_port):
 	TAPE_LOCATION = loc
-	MY_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	MY_SOCKET.bind((tcp_ip_address, tcp_port))
-	MY_SOCKET.listen(1)
+	my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	my_socket.bind((tcp_ip_address, tcp_port))
+	my_socket.listen(1)
 	
-	MY_CONN, MY_ADDR = MY_SOCKET.accept()
-	debug_out('Connection address: <' + str(MY_ADDR) + '>')
-	while True:
-		data = MY_CONN.recv(BUFFER_SIZE)
+	my_conn, my_addr = my_socket.accept()
+	debug_out('Connection address: <' + str(my_addr) + '>')
+	running = True
+	while running:
+		data = my_conn.recv(BUFFER_SIZE)
 		if not data:
 			stderrout("receiving data")
 			continue
@@ -123,6 +135,7 @@ def jetson_server(loc, tcp_ip_address, tcp_port):
 			rsp = locate_tape()
 	
 		elif cmd == 'shutdown':
+			running = False
 			rsp = shutdown()
 	
 		elif cmd == 'debug_on':
@@ -136,5 +149,11 @@ def jetson_server(loc, tcp_ip_address, tcp_port):
 			stderrout(s)
 			rsp = "Error:" + s
 	
+		if killer.kill_now:
+			break
+
 		# send handler response back
-		MY_CONN.send(rsp)
+		my_conn.send(rsp)
+
+	my_conn.close()
+	sys.exit(0)
