@@ -6,13 +6,14 @@ import sys
 import re
 import json
 from location import Location
+import logging
 
 RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)
 #POWERCUBUE_LOCATION = Location()
-TAPE_LOCATION = None
-BUFFER_SIZE = 20  # Normally 1024, but we want fast response
+#TAPE_LOCATION = None
+BUFFER_SIZE = 100  # Normally 1024, but we want fast response
 
-DEBUG = False
+DEBUG = True
 
 import signal
 import time
@@ -28,31 +29,47 @@ class GracefulKiller:
 	def exit_gracefully(self,signum, frame):
 		self.kill_now = True
 
+DEBUG_LOG = None
+
 def init_debug(filename):
-	if not DEBUG:
+	#global DEBUG
+	global DEBUG_LOG
+	if not DEBUG_LOG:
 		DEBUG_LOG = open(filename, 'w')
 		# Setting DEBUG True or False changes if we want to debug
 		DEBUG = True
 
 def close_debug():
-	if DEBUG:
+	#global DEBUG
+	global DEBUG_LOG
+	if DEBUG_LOG:
 		DEBUG_LOG.close()
 		DEBUG = False
 
 def debug_out(s):
-	if DEBUG:
-		DEBUG_LOG.write("Debug: " + s)
+	global DEBUG_LOG
+	#global DEBUG
+	if DEBUG_LOG:
+		DEBUG_LOG.write("Debug: " + str(s))
 
 def stderrout(s):
-	sys.stderr.write("Error: " + s)
+	sys.stderr.write("Error: " + str(s))
 
 # parse matches patterns of the data into groups 1 and 2 separated
 # by a colon and returns them separately
 def parse(data):
+	global DEBUG_LOG
 	pattern = '([^:]+):(.*)'
+	if DEBUG_LOG:
+		DEBUG_LOG.write("parsing cmd from client " + str(data) + "\n")
 	m = re.match(pattern, data)
-	cmd = m.group(1)
-	json_data = m.group(2)
+	if m == None:
+		cmd = None
+		json_data = None
+	else:
+		cmd = m.group(1)
+		json_data = m.group(2)
+
 	return (cmd, json_data)
 
 def decode_json(json_data):
@@ -61,57 +78,78 @@ def decode_json(json_data):
 		decoded = json.loads(json_data)
  
 	except (ValueError, KeyError, TypeError):
-		stderrout("JSON format error")
+		stderrout("JSON format error <" + json_data + ">\n")
 	return decoded
 
 def reset_powercube():
+	global RSP_DEFAULT
 	POWERCUBE_LOCATION.reset()
 	return RSP_DEFAULT
 
-def reset_tape():
-	TAPE_LOCATION.reset()
+def reset_tape(mm, mutex):
+	global RSP_DEFAULT
+	loc = Location()
+	json_data = json.dumps(
+		(loc.degrees, loc.azim, loc.distance),
+		ensure_ascii=False) + '\n'
+	with mutex:
+		mm.seek(0)
+		mm.write(json_data)
 	return RSP_DEFAULT
 
-def locate_powercube():
+def locate_powercube(mm, mutex):
 	# XXX phoney location until we serialize Location class
-	return "Success:" + (
-		json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
-	)
+	with mutex:
+		mm.seek(0)
+		json_data = mm.readline()
+	return "Success:" + json_data.rstrip('\n')
+	#return "Success:" + (
+	#	json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
+	#)
 
-def locate_tape():
-	return "Success:" + (
-		json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
-	)
+def locate_tape(mm, mutex):
+	with mutex:
+		mm.seek(0)
+		json_data = mm.readline()
+	logging.debug("locate_tape: json_data <" + json_data + ">")
+	return "Success:" + json_data.rstrip('\n')
+	#return "Success:" + (
+	#	json.dumps((loc.degrees, loc.azim, loc.distance), ensure_ascii=False)
+	#)
 
 def shutdown():
 	return RSP_DEFAULT
 
 def debug_on(decoded):
+	global RSP_DEFAULT
 	# Access data
 	filename = decoded['filename']
 	init_debug(filename)
 	return RSP_DEFAULT
 
 def debug_off():
+	global RSP_DEFAULT
 	close_debug()
 	return RSP_DEFAULT
 
-def jetson_server(loc, tcp_ip_address, tcp_port):
-	TAPE_LOCATION = loc
+def jetson_server(mm, mutex, tcp_ip_address, tcp_port):
+	global BUFFER_SIZE
+	loc = Location()
 	my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	my_socket.bind((tcp_ip_address, tcp_port))
 	my_socket.listen(1)
 	
 	my_conn, my_addr = my_socket.accept()
 	debug_out('Connection address: <' + str(my_addr) + '>')
+	killer = GracefulKiller()
 	running = True
 	while running:
 		data = my_conn.recv(BUFFER_SIZE)
 		if not data:
-			stderrout("receiving data")
+			stderrout("No data received\n")
 			continue
 	
-		debug_out("received data: <" + data + '>')
+		#debug_out('received data: <' + data + '>\n')
 	
 		# parse the command out of data, return cmd and json args
 		cmd, json_data = parse(data)
@@ -122,17 +160,13 @@ def jetson_server(loc, tcp_ip_address, tcp_port):
 			rsp = reset_powercube()
 	
 		elif cmd == 'reset_tape':
-			rsp = reset_tape()
+			rsp = reset_tape(mm, mutex)
 	
 		elif cmd == 'locate_powercube':
-			USING_TAPE = False
-			USING_CUBE = True
 			rsp = locate_powercube()
 	
 		elif cmd == 'locate_tape':
-			USING_TAPE = True
-			USING_CUBE = False
-			rsp = locate_tape()
+			rsp = locate_tape(mm, mutex)
 	
 		elif cmd == 'shutdown':
 			running = False
@@ -145,9 +179,9 @@ def jetson_server(loc, tcp_ip_address, tcp_port):
 			rsp = debug_off()
 	
 		else:
-			s = "Not a command: " + cmd
+			s = 'Not a command: <' + cmd + '>\n'
 			stderrout(s)
-			rsp = "Error:" + s
+			rsp = 'Error:' + s
 	
 		if killer.kill_now:
 			break

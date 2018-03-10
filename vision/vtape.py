@@ -1,3 +1,4 @@
+#! /usr/bin/python
 # vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
 
 import numpy as np
@@ -5,59 +6,26 @@ import cv2
 from location import Location
 from math import sin, radians, sqrt
 import time
+from camera import Camera
+import mmap
+import json
+import logging
 
-USING_TAPE = False
+def setLocation(mm, mutex, degrees, azim, distance):
+	loc = Location()
+	loc.degrees  = degrees
+	loc.azim     = azim
+	loc.distance = distance
+	json_data = (
+		json.dumps(
+		(loc.degrees, loc.azim, loc.distance),
+		ensure_ascii=False) + '\n'
+		)
+	with mutex:
+		mm.seek(0)
+		mm.write(json_data)
 
-DEBUG = True
-if DEBUG:
-	import inspect
-
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-	sys.stderr.write("No camera could be opened for capture\n")
-	exit(1)
-
-# Here are the numeric values of the properties that can be set on a VideoCapture:
-# 0. CV_CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
-# 1. CV_CAP_PROP_POS_FRAMES 0-based index of the frame to be decoded/captured next.
-# 3. CV_CAP_PROP_POS_AVI_RATIO Relative position of the video file
-# 4. CV_CAP_PROP_FRAME_WIDTH Width of the frames in the video stream.
-# 5. CV_CAP_PROP_FRAME_HEIGHT Height of the frames in the video stream.
-# 6. CV_CAP_PROP_FPS Frame rate.
-# 7. CV_CAP_PROP_FOURCC 4-character code of codec.
-# 8. CV_CAP_PROP_FRAME_COUNT Number of frames in the video file.
-# 9. CV_CAP_PROP_FORMAT Format of the Mat objects returned by retrieve() .
-# 10. CV_CAP_PROP_MODE Backend-specific value indicating the current capture mode.
-# 11. CV_CAP_PROP_BRIGHTNESS Brightness of the image (only for cameras).
-# 12. CV_CAP_PROP_CONTRAST Contrast of the image (only for cameras).
-# 13. CV_CAP_PROP_SATURATION Saturation of the image (only for cameras).
-# 14. *** CV_CAP_PROP_HUE Hue of the image (only for cameras).
-# 15. *** CV_CAP_PROP_GAIN Gain of the image (only for cameras).
-# 16. *** CV_CAP_PROP_EXPOSURE Exposure (only for cameras).
-# 17. CV_CAP_PROP_CONVERT_RGB Boolean flags indicating whether images should be converted to RGB.
-# 18. CV_CAP_PROP_WHITE_BALANCE Currently unsupported
-# 19. CV_CAP_PROP_RECTIFICATION Rectification flag for stereo cameras (note: only supported by DC1394 v 2.x backend currently)
-# *** not supported by MS camera
-
-
-contrast = cap.get(cv2.cv.CV_CAP_PROP_CONTRAST)
-print("old contrast " + (str(contrast)))
-#default was .433, lower contrast is better
-new_con = cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.1)
-print("new contrast " + (str(new_con))) #-trast
-
-# Setting of the camera exposure is not supported by this camera
-#old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
-#print "old exposure " + str(old_expo)
-#new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
-#print new_expo
-
-
-def setLocation(loc, degrees, azim, distance):
-	with MUTEX:
-		loc.degrees  = degrees
-		loc.azim     = azim
-		loc.distance = distance
+	logging.debug("degrees: " + str(loc.degrees) + " azimuth: " + str(loc.azim) + " distance: " + str(loc.distance))
 
 FOV_x_deg = 58.0 # degrees
 FOV_y_deg = 31.0 # degrees
@@ -68,9 +36,9 @@ FOV_y_pix = 480.0 # pixels
 #Tape_W = 3.0 # inches
 #Tape_H = 15.3 # inches
 #Big_W = 8.0 # inches: distance from outer edges of tape in x
-Big_W = 5.1 # inches: distance from outer edges of tape in x
-Tape_W = 1.5 # inches of camera box
-Tape_H = 3.0 # inches of camera box
+Big_W = 4.02 # inches: distance from outer edges of tape in x
+Tape_W = 1.18 # inches of camera box
+Tape_H = 2.08 # inches of camera box
 
 def centerbox(box):
 	center_x = box.x+box.w/2.0
@@ -91,6 +59,8 @@ def my_distance(box, delta_x_deg, cen_x):
 	tmp = sin(radians(delta_x_deg)) #pixels
 	if tmp != 0.0:
 		dis = (cen_x - half_FOV_x) / tmp * inches_per_pixel # inches
+		#FUDGE FACTOR
+		dis *= 1.1
 	else:
 		dis = -1
 	return dis
@@ -136,7 +106,7 @@ class Box:
 	h = property(__set_h, __get_h)
 
 	def bb(self):
-		return (x, y, x+w, y+h)
+		return (self.x, self.y, self.x + self.w, self.y + self.h)
 
 def bb_of_two(boxA, boxB):
 	x1A, y1A, x2A, y2A = boxA.bb()
@@ -149,18 +119,18 @@ def bb_of_two(boxA, boxB):
 	h = lry - uly
 	return Box(ulx, uly, w, h)
 
-def find_tape(loc):
+def find_tape(mm, mutex, cam):
+	global DEBUG
+	logging.debug("cam " + str(cam))
 	while True:
-
-		if not USING_TAPE:
-			time.sleep(0.1)
-			continue
-
 		# capture an image
-		retval, frame = cap.read() 
+		retval, frame = cam.read() 
 		if not retval:
 			time.sleep(1)
 			continue
+
+		logging.debug("got image from cam")
+
 		# convert to HSV
 		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		# hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
@@ -185,9 +155,11 @@ def find_tape(loc):
 			cv2.imshow('erosion', erosion)
 	
 		# contours the mask
-		contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-	
-		#image,contours,hierarchy = cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+		contours,hierarchy = (
+			cv2.findContours(erosion,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+			)
+
+		logging.debug("got contours")
 	
 		# min_apect occurs when object is +/- 30 degrees off center
 		min_aspect = Tape_W * sqrt(3.0) / 2.0 /15.3
@@ -212,49 +184,74 @@ def find_tape(loc):
 	
 		if len(candidates) >= 2:
 			candidates.sort(key=lambda o: o["h"], reverse=True)
-			print "candidates " + str(candidates)
+			logging.debug("candidates " + str(candidates))
 	
 			for i in range(len(candidates)-1):
 				# through out any candidates have poorly matching y values
 				if abs(candidates[i]["y"] - candidates[i+1]["y"]) > (26):
-					print("aaa")
+					if DEBUG:
+						print("Difference of y values is too large")
 					continue
 	
 				# through out any candidates have poorly matching h values
 				del_h = abs(candidates[i]["h"] - candidates[i+1]["h"])
 				if del_h > (candidates[i]["h"] * 0.1):
-					print("bbb")
+					if DEBUG:
+						print("Difference of height is too large")
 					continue
-	
-				print("XXXXXX")
+
+				logging.debug("Passed filters")
 	
 				box = candidates[i]
-				box1 = Box(
-					 box["x"],            box["y"],
-					 box["x"] + box["w"], box["y"] + box["h"])
+				box1 = Box(box["x"], box["y"], box["w"], box["h"])
 				box = candidates[i+1]
-				box2 = Box(
-					 box["x"],            box["y"],
-					 box["x"] + box["w"], box["y"] + box["h"])
+				box2 = Box(box["x"], box["y"], box["w"], box["h"])
 	
 				big_box = bb_of_two(box1, box2)
 				degrees, azim, distance = where(big_box)
 	
 				# Set location of the big box
-				setLocation(loc, degrees, azim, distance)
+				setLocation(mm, mutex, degrees, azim, distance)
 	
 				if DEBUG:
-					box = candidates[i]
 					cv2.rectangle(hsv,
-						( box["x"],            box["y"]),
-						( box["x"] + box["w"], box["y"] + box["h"]),
+						(box1.x, box1.y), (box1.x + box1.w, box1.y + box1.h),
 						(0,255,0),3)
-					box = candidates[i+1]
 					cv2.rectangle(hsv,
-						( box["x"],            box["y"]),
-						( box["x"] + box["w"], box["y"] + box["h"]),
+						(box2.x, box2.y), (box2.x + box2.w, box2.y + box2.h),
 						(0,255,0),3)
 					cv2.imshow('hsv',hsv)
+	
+		# 0xFF means to only look for last bit of the return value of
+	 	# waitKey so shift/alt etc... works
+		k = cv2.waitKey(5) & 0xFF
+		if k == 27:
+			break
+
+DEBUG = False
+if __name__ == "__main__":
+	from multiprocessing import Lock
+	import inspect
+	DEBUG = True
+	logging.basicConfig(filename='logger.log', level=logging.DEBUG)
+	logging.debug("start")
+	cam = Camera(0)
+	cam.set_debug(True)
+	cam.setup()
+	# Build a mutex to protect a location instance
+	mutex = Lock()
+
+	s = (
+		b"01234567890123456789012345678901234567890123456789" +
+		b"01234567890123456789012345678901234567890123456789"
+		)
+	mm = mmap.mmap(-1, 100)
+	mm.write(s)
+
+	find_tape(mm, mutex, cam)
+	cam.shutdown()
+	mm.close()
+
 	
 						# drawContours is destructive in OpenCV <3.x.x
 						#cv2.drawContours(hsv,candidates,i,(0,255,0),3)
@@ -277,13 +274,14 @@ def find_tape(loc):
 		
 		#cv2.imshow('frame', frame)
 		#cv2.imshow('result', result)
-	
-		# 0xFF means to only look for last bit of the return value of
-	 	# waitKey so shift/alt etc... works
-		k = cv2.waitKey(5) & 0xFF
-		if k == 27:
-			break
 
-if DEBUG:	
-	cv2.destroyAllWindows()
-cap.release()
+
+# Setting of the camera exposure is not supported by this camera
+#old_expo = cap.get(cv2.cv.CV_CAP_PROP_EXPOSURE)
+#print "old exposure " + str(old_expo)
+#new_expo = cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, .5)
+#print new_expo
+	
+
+
+
