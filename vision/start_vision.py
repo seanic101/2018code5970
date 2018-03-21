@@ -30,11 +30,14 @@ import mmap
 
 
 
-# in competition the following is the roborio
-TCP_IP = '10.59.70.2'
-# in competition the TX1 should be 10.59.70.12
+# in competition the following is the roborio '10.59.70.177'
+# in competition 
+
 # in test we use this
 #TCP_IP = '127.0.0.1'
+
+# in competition the TX1 should be 10.59.70.12
+TCP_IP = '10.59.70.12'
 
 TCP_PORT = 5005
 

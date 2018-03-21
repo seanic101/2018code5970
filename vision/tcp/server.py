@@ -144,6 +144,7 @@ def jetson_server(mm, mutex, tcp_ip_address, tcp_port):
 	global BUFFER_SIZE
 	loc = Location()
 	my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	sys.stderr.write("tcp_ip_address " + str(tcp_ip_address))
 	my_socket.bind((tcp_ip_address, tcp_port))
 	my_socket.listen(1)
 	
