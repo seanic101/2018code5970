@@ -3,9 +3,11 @@
 
 import socket
 import sys
+PY2 = sys.version_info[0] == 2
+
 import re
 import json
-from location import Location
+#from location import Location
 import logging
 
 RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)
@@ -59,7 +61,13 @@ def stderrout(s):
 # by a colon and returns them separately
 def parse(data):
 	global DEBUG_LOG
-	pattern = '([^:]+):(.*)'
+	global PY2
+
+	if PY2:
+	    pattern = '([^:]+):(.*)'
+	else:
+	    pattern = b'([^:]+):(.*)'
+
 	if DEBUG_LOG:
 		DEBUG_LOG.write("parsing cmd from client " + str(data) + "\n")
 	m = re.match(pattern, data)
