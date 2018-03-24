@@ -127,7 +127,7 @@ if __name__ == "__main__":
 	parser.add_argument('-p', '--pidfile', default='/tmp/start_vision.pid')
 	parser.add_argument('-l', '--logfile', default='/tmp/start_vision.log')
 
-	parser.add_argument('-d', '--debug', default=False)
+	parser.add_argument('-d', '--debug', action='store_true')
 
 	# to satisfy the requirement of systemd that forking process types use
 	# a --daemon flag
@@ -135,6 +135,7 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 	if args.debug:
+		print("Listening for clients on localhost...")
 		TCP_IP = '127.0.0.1'
 
 	start_daemon(pidf=args.pidfile, logf=args.logfile)
