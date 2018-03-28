@@ -7,7 +7,7 @@ PY2 = sys.version_info[0] == 2
 
 import re
 import json
-#from location import Location
+from location import Location
 import logging
 
 RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)

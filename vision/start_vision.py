@@ -68,7 +68,6 @@ def main(logf):
 	mm = mmap.mmap(-1, 100)
 	mm.write(s)
 
-	logging.basicConfig(filename='logger.log', level=logging.DEBUG)
 	logging.debug("start")
 #	logger = logging.getLogger('jetson')
 #	logger.setLevel(logging.INFO)
@@ -135,8 +134,12 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 	if args.debug:
+		logging.basicConfig(filename='logger.log', level=logging.DEBUG)
 		print("Listening for clients on localhost...")
 		TCP_IP = '127.0.0.1'
+	else:
+		logging.basicConfig(filename='logger.log', level=logging.WARNING)
+		
 
 	start_daemon(pidf=args.pidfile, logf=args.logfile)
 
