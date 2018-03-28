@@ -90,11 +90,11 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.Downdaisy = JoystickButton(self.Gteencont, 6)
         self.UpClimber = JoystickButton(self.Gteencont, 1)
         #self.pop = JoystickButton(self.xbox, 3)#Y
-        #self.pop = JoystickButton(self.steering, 1)#Y
-        #self.Lshift = wpilib.Solenoid(0)
-        #self.Rshift = wpilib.Solenoid(1)
-        self.Lpiston = wpilib.Solenoid(0)
-        self.Rpiston = wpilib.Solenoid(1)
+        self.pop = JoystickButton(self.steering, 5)#Y
+        self.Lshift = wpilib.Solenoid(0)
+        self.Rshift = wpilib.Solenoid(1)
+        self.Lpiston = wpilib.Solenoid(2)
+        self.Rpiston = wpilib.Solenoid(3)
         self.pneumaL=JoystickButton(self.steering, 1)
         self.pneumaR=JoystickButton(self.throttle, 1)
         
@@ -501,7 +501,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         """This function is called periodically during operator control."""
         self.drivetrainMotorControl()#driving motors
         self.InCube()#intake/outake
-        #self.Pop() #shifters
+        self.Pop() #shifters
         self.Gteen()#raise and lower Gteen
         self.Upsydaisy()#raise and lower intake
         self.Pneuma()
@@ -643,13 +643,13 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         if self.pop.get():
             self.Lshift.set(True)
             self.Rshift.set(True)
-            for motor in self.pop_motor:
-                motor.set(1)
+            #for motor in self.pop_motor:
+                #motor.set(1)
         else:
             self.Lshift.set(False)
             self.Rshift.set(False)
-            for motor in self.pop_motor:
-                motor.set(0)
+            #for motor in self.pop_motor:
+                #motor.set(0)
                 
                 
     def Pneuma(self):
