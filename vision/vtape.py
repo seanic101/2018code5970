@@ -69,9 +69,13 @@ def where(box):
 	cen_x, cen_y = centerbox(box)
 	off_x, off_y = offset(cen_x, cen_y)
 	delta_x_deg = off_x * FOV_x_deg - FOV_x_deg / 2.0
+	delta_y_deg = -1.0 * (off_y * FOV_y_deg - FOV_y_deg / 2.0)
+	print(off_x, off_y)
+	print(cen_x, cen_y)	
+	
 	return (
 		delta_x_deg,
-		off_y * FOV_y_deg - FOV_y_deg / 2.0,
+		delta_y_deg,
 		my_distance(box, delta_x_deg, cen_x)
 	)	
 
@@ -210,6 +214,7 @@ def find_tape(mm, mutex, cam):
 				big_box = bb_of_two(box1, box2)
 				degrees, azim, distance = where(big_box)
 	
+				print(degrees, azim, distance)
 				# Set location of the big box
 				setLocation(mm, mutex, degrees, azim, distance)
 	
