@@ -1,17 +1,20 @@
 #! /usr/bin/env python
 # vim: sm ai tabstop=4 shiftwidth=4 softtabstop=4
 
+import os
 import sys
+
 #Jetson path
-sys.path.insert(0, '/home/nvidia/opencv_workspace/robotgit/2018code5970/vision')
+here = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, here + '/..')
+
 #Windows path
-sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
+#sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
 import socket
 import json
 from time import sleep
 from server import parse
 import re
-import sys
 import argparse
 
 PY2 = sys.version_info[0] == 2

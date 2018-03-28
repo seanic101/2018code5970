@@ -20,6 +20,7 @@ def setLocation(mm, mutex, degrees, azim, distance):
 		json.dumps(
 		(loc.degrees, loc.azim, loc.distance),
 		ensure_ascii=False) + '\n'
+		delta_x_deg,
 		)
 	with mutex:
 		mm.seek(0)
@@ -68,10 +69,13 @@ def my_distance(box, delta_x_deg, cen_x):
 def where(box):
 	cen_x, cen_y = centerbox(box)
 	off_x, off_y = offset(cen_x, cen_y)
+	#off_x *= -1
+	#off_y *= -1
 	delta_x_deg = off_x * FOV_x_deg - FOV_x_deg / 2.0
+	delta_y_deg = off_y * FOV_y_deg - FOV_y_deg / 2.0
 	return (
 		delta_x_deg,
-		off_y * FOV_y_deg - FOV_y_deg / 2.0,
+		delta_y_deg,
 		my_distance(box, delta_x_deg, cen_x)
 	)	
 
