@@ -6,6 +6,15 @@ import drive
 #import time
 #import numpy as np
 #import cv2
+#import sys
+#sys.path.insert(0, '/home/nvidia/opencv_workspace/robotgit/2018code5970/vision')
+#import socket
+#import json
+#from time import sleep
+#sys.path.insert(0,"C:\Users\Beavertronics\Desktop\2018Workstation\2018code5970\vision\tcp")
+#sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
+#from server import parse
+#import re
 
 class BeaverTronicsRobot(wpilib.IterativeRobot):
     def robotInit(self):
@@ -58,6 +67,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #Initialize the left and right encoders
         self.Rcoder = wpilib.Encoder(3,2)
         self.Lcoder = wpilib.Encoder(1,0)
+        self.Gcoder = wpilib.Encoder(4,5)
 
 
         #***************Driverstation Initialization******************
@@ -74,15 +84,19 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #got the pinouts off of google need to test
         self.InCubeUp = JoystickButton(self.Gteencont,3)
         self.SeanInCubeUp =JoystickButton(self.throttle,3)
-        self.SeanInCubeDown =JoystickButton(self.throttle,4)
-        self.InCubeDown = JoystickButton(self.Gteencont, 4)
+        #self.SeanInCubeDown =JoystickButton(self.throttle,4)
+        #self.InCubeDown = JoystickButton(self.Gteencont, 4)
         self.Updaisy = JoystickButton(self.Gteencont, 5)
         self.Downdaisy = JoystickButton(self.Gteencont, 6)
         self.UpClimber = JoystickButton(self.Gteencont, 1)
         #self.pop = JoystickButton(self.xbox, 3)#Y
-        self.pop = JoystickButton(self.steering, 1)#Y
-        self.Lshift = wpilib.Solenoid(0)
-        self.Rshift = wpilib.Solenoid(1)
+        #self.pop = JoystickButton(self.steering, 1)#Y
+        #self.Lshift = wpilib.Solenoid(0)
+        #self.Rshift = wpilib.Solenoid(1)
+        self.Lpiston = wpilib.Solenoid(0)
+        self.Rpiston = wpilib.Solenoid(1)
+        self.pneumaL=JoystickButton(self.steering, 1)
+        self.pneumaR=JoystickButton(self.throttle, 1)
         
 
     def setSetpoint(self):
@@ -100,7 +114,8 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #print("here")
         self.Lcoder.reset()
         self.Rcoder.reset()
-        self.stage = -1
+        self.Gcoder.reset()
+        self.stage = 0
         #self.cap = cv2.VideoCapture(0)
         #self.new_con = self.cap.set(11, 0.1)
         #print("new contrast " + (str(self.new_con))) #-trast
@@ -355,22 +370,23 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             else:
                 self.setDriveMotors(0,0)
                 self.stage =2           
-        elif self.stage ==2:
-            x=self.Gyroo.getAngle()
-            print(x)
-            if int(x) <= 87:
-                self.setDriveMotors(.35,.35)
-            else:
-                self.setDriveMotors(0,0)
-                self.stage = 3
-        elif self.stage ==3:
+        #elif self.stage ==2:
+         #   x=self.Gyroo.getAngle()
+          #  print(x)
+           # if int(x) <= 87:
+            #    self.setDriveMotors(.35,.35)
+            #else:
+             #   self.setDriveMotors(0,0)
+              #
+            #  self.stage = 3
+        '''elif self.stage ==3:
             x=self.Gyroo.getAngle()
             print(x)
             if int(x) >= -87:
                 self.setDriveMotors(-.35,-.35)
             else:
                 self.setDriveMotors(0,0)
-                self.stage = 4
+                self.stage = 4'''
 
                 
 #*************************************************************************************************
@@ -408,7 +424,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 self.setDriveMotors(-.35,-.35)
             else:
                 self.setDriveMotors(0,0)
-                self.stage = 1004
+                self.stage = 10
         
         '''elif self.stage ==4:
             self.setDriveMotors(.35,-.35)
@@ -488,6 +504,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #self.Pop() #shifters
         self.Gteen()#raise and lower Gteen
         self.Upsydaisy()#raise and lower intake
+        self.Pneuma()
     
     def testPeriodic(self):
         """This function is called periodically during test mode."""
@@ -512,10 +529,51 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         return n
 
     def Gteen(self):
-        value = self.Gteencont.getY()
+        value = self.Gteencont.getY()#405 is the desired max on practice bot
+        turning = self.Gcoder.get()#405 is the desired max
+        '''if -1*value <= 0:
+            print("falling at "+str(value))
+            if turning >= 300:
+                for motor in self.Gteen_motor:
+                    motor.set(-.05)#fall fast
+            elif turning >= 200:
+                for motor in self.Gteen_motor:
+                    motor.set(-.05)#fall medium
+            elif turning >= 10:
+                for motor in self.Gteen_motor:
+                    motor.set(-.05)#fall 
+            elif turning >= 5:
+                for motor in self.Gteen_motor:
+                    motor.set(0)
+                    
+                    
+                    #fall slow
+            #check if its high up or low up
+            # if top 2% then fall fast(because it should be resting set output to 0)
+            
+            
+        elif -1*value > .25:
+            print("rising at "+str(value))
+            if turning <= 100:
+                for motor in self.Gteen_motor:
+                    motor.set(-.8)#rise fast
+            elif turning <= 200:
+                for motor in self.Gteen_motor:
+                    motor.set(-.6)#rise medium
+            elif turning <= 380:
+                for motor in self.Gteen_motor:
+                    motor.set(-.6)#rise slow 
+            elif turning <= 400:
+                for motor in self.Gteen_motor:
+                    motor.set(-0.3)
+        else:
+            for motor in self.Gteen_motor:
+                motor.set(-0.3)'''
+        
+        print("The G encoder is at: "+str(turning))
         for motor in self.Gteen_motor:
             motor.set(value)
-            #print(value)
+        print("the value for the motor power "+str(value))
     
     def AutoInCube(self,what):#intake function
         if self.InCubeUp.get():
@@ -551,11 +609,11 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 motor.set(2.003)
             for motor in self.RnCube_motor:
                 motor.set(-2.003)
-        elif self.InCubeDown.get() or self.SeanInCubeDown.get():
-            for motor in self.LnCube_motor:
-                motor.set(-2.003)
-            for motor in self.RnCube_motor:
-                motor.set(2.003)
+        #elif self.InCubeDown.get() or self.SeanInCubeDown.get():
+            #for motor in self.LnCube_motor:
+                #motor.set(-2.003)
+            #for motor in self.RnCube_motor:
+                #motor.set(2.003)
         else:
             for motor in self.LnCube_motor:
                 motor.set(0)
@@ -580,18 +638,29 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         else:
             for motor in self.UpClimber_motor:
                 motor.set(0)
-
+    
     def Pop(self):
         if self.pop.get():
-            self.Lshift.set(1)
-            self.Rshift.set(1)
-            #for motor in self.pop_motor:
-                #motor.set(1)
+            self.Lshift.set(True)
+            self.Rshift.set(True)
+            for motor in self.pop_motor:
+                motor.set(1)
         else:
-            self.Lshift.set(0)
-            self.Rshift.set(0)
-            #for motor in self.pop_motor:
-                #motor.set(0)
+            self.Lshift.set(False)
+            self.Rshift.set(False)
+            for motor in self.pop_motor:
+                motor.set(0)
+                
+                
+    def Pneuma(self):
+        if self.pneumaL.get():
+            self.Lpiston.set(False)
+        else:
+            self.Lpiston.set(True)
+        if self.pneumaR.get():
+            self.Rpiston.set(False)
+        else:
+            self.Rpiston.set(True)
 
 if __name__ == "__main__":
     wpilib.run(BeaverTronicsRobot)
