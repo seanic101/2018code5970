@@ -65,8 +65,8 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #self.pop_motor.append(wpilib.VictorSP(7))
 
         #Initialize the left and right encoders
-        self.Rcoder = wpilib.Encoder(3,2)
-        self.Lcoder = wpilib.Encoder(1,0)
+        #self.Rcoder = wpilib.Encoder(2,3)
+        self.Lcoder = wpilib.Encoder(0,1)
         self.Gcoder = wpilib.Encoder(4,5)
 
 
@@ -113,7 +113,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.auto_loop_counter = 0
         #print("here")
         self.Lcoder.reset()
-        self.Rcoder.reset()
+        #self.Rcoder.reset()
         self.Gcoder.reset()
         self.stage = 0
         #self.cap = cv2.VideoCapture(0)
@@ -357,7 +357,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         if self.stage ==0:
             self.setDriveMotors(0,0)
             self.Gyroo.calibrate()
-            self.Rcoder.reset()
+            #self.Rcoder.reset()
             self.stage =1
             self.auto_loop_counter = 0
         
@@ -396,7 +396,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         if self.stage ==1000:
             self.setDriveMotors(0,0)
             self.Gyroo.calibrate()
-            self.Rcoder.reset()
+            #self.Rcoder.reset()
             self.stage =1001
             self.auto_loop_counter = 0
         
@@ -505,6 +505,8 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.Gteen()#raise and lower Gteen
         self.Upsydaisy()#raise and lower intake
         self.Pneuma()
+        print("left encoder value "+str(self.Lcoder.get()))
+        #print("right encoder value "+str(self.Rcoder.get()))
     
     def testPeriodic(self):
         """This function is called periodically during test mode."""
