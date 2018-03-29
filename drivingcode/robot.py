@@ -3,18 +3,16 @@ import wpilib
 import math
 from wpilib.buttons.joystickbutton import JoystickButton
 import drive
-#import time
-#import numpy as np
-#import cv2
-#import sys
-#sys.path.insert(0, '/home/nvidia/opencv_workspace/robotgit/2018code5970/vision')
-#import socket
-#import json
-#from time import sleep
-#sys.path.insert(0,"C:\Users\Beavertronics\Desktop\2018Workstation\2018code5970\vision\tcp")
+here = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, here + '/../../vision/tcp')
+#Windows path
 #sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
-#from server import parse
-#import re
+import socket
+import json
+from time import sleep
+from server import parse, decode_json
+import re
+import argparse
 
 class BeaverTronicsRobot(wpilib.IterativeRobot):
     def robotInit(self):
@@ -139,9 +137,110 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                     return deg,asmith,dist
             self.setDriveMotors(0, 0)
             return -1
-        def distance_to_tape(self):
+        
+		
+		
+		
+		
+		def distance_to_tape(self):
             #lolly's code here
+			#Jetson path
+			here = os.path.dirname(os.path.realpath(__file__))
+			sys.path.insert(0, here + '/../../vision/tcp')
 
+			#Windows path
+			#sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
+			#import socket
+			#import json
+			#from time import sleep
+			#from server import parse, decode_json
+			#import re
+			#import argparse
+
+			PY2 = sys.version_info[0] == 2
+
+			MSG_DEFAULT = "shutdown:" + json.dumps({}, ensure_ascii=False)
+			LOC_DEFAULT = "locate_tape:" + json.dumps({}, ensure_ascii=False)
+			RESET_DEFAULT = "reset_tape:"  + json.dumps({}, ensure_ascii=False)
+			DEBUG_ON_DEFAULT = "debug_on:"  + json.dumps({}, ensure_ascii=False)
+			DEBUG_DEFAULT = "debug_on:" + json.dumps({'filename':'/tmp/debugout'}, ensure_ascii=False)
+
+			TCP_IP = '10.59.70.12'
+			TCP_PORT = 5005
+			BUFFER_SIZE = 1024
+
+			self.parser = argparse.ArgumentParser(description="Beavertronics Jetson TX1 client")
+
+			self.parser.add_argument('-d', '--debug', action='store_true')
+
+			self.args = selfparser.parse_args()
+			if args.debug:
+				print("Connecting to server on localhost...")
+				self.TCP_IP = '127.0.0.1'
+
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((self.TCP_IP, self.TCP_PORT))
+
+			if args.debug:
+				print("Connection to local host established")
+
+			try:
+
+				if PY2:
+					s.send(self.RESET_DEFAULT)
+				else:
+					s.send(bytes(self.RESET_DEFAULT, 'utf-8'))
+
+				self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
+				if args.debug:
+					print("Got json_data: <" + str(self.json_data) + ">")
+
+				while 1:
+					sleep(0.1)
+					if PY2:
+						s.send(self.LOC_DEFAULT)
+					else:
+						s.send(bytes(self.LOC_DEFAULT, 'utf-8'))
+
+					self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
+					if PY2:
+						self.tmp =  self.json_data
+					else:
+						self.tmp =  self.bytes_decode(self.json_data)
+						
+					self.degrees, self.azim, self.distance = decode_json(self.tmp)
+					return self.degrees, self.azim, self.distance
+					#print("client received loc data: <"+ str(self.degrees) + " " + str(self.azim) + " " + str(self.distance) + ">")
+			#KeyboardInterrupt is Ctrl-C
+			except KeyboardInterrupt:
+				print('interrupted')
+
+			s.send(MSG_DEFAULT)
+			self.json_data = s.recv(BUFFER_SIZE)
+			s.close()
+
+			if PY2:
+				self.tmp =  self.json_data
+			else:
+				self.tmp =  bytes_decode(json_data)
+			print("client received shutdown data:" + self.tmp)
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
         def pinser(self,state):
             self.auto_loop_counter = 0
             while self.auto_loop_counter <= 50:
@@ -156,11 +255,11 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             min_wrist=10#set high so it will stop before it breaks itself at 0
             if direction =="Forward":
                 while self.Wcoder.get()<max_wrist:
-					for motor in self.LnCube_motor:
-						motor.set(.25)
-				for motor in self.LnCube_motor:
-						motor.set(0)
-					
+                    for motor in self.LnCube_motor:
+                        motor.set(.25)
+                for motor in self.LnCube_motor:
+                        motor.set(0)
+                    
 
 
             elif direction =="Backward":
