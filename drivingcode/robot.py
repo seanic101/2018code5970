@@ -68,6 +68,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #self.Rcoder = wpilib.Encoder(2,3)
         self.Lcoder = wpilib.Encoder(0,1)
         self.Gcoder = wpilib.Encoder(4,5)
+        elf.Wcoder = wpilib.Encoder(2,3)
 
 
         #***************Driverstation Initialization******************
@@ -81,7 +82,6 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.steering = wpilib.Joystick(1)
         self.Gteencont = wpilib.Joystick(2)
 
-        #got the pinouts off of google need to test
         self.InCubeUp = JoystickButton(self.Gteencont,3)
         self.SeanInCubeUp =JoystickButton(self.throttle,3)
         #self.SeanInCubeDown =JoystickButton(self.throttle,4)
@@ -97,16 +97,6 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.Rpiston = wpilib.Solenoid(3)
         self.pneumaL=JoystickButton(self.steering, 1)
         self.pneumaR=JoystickButton(self.throttle, 1)
-        
-
-    def setSetpoint(self):
-        self.setpoint = 0
-            # PID Values
-        self.P = 1
-        self.I = 0
-        self.D = 0
-        self.integral = 0
-        self.previous_error = 0.0
 
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
@@ -119,40 +109,63 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         
         def drive_forward(self,distance,direction):
             self.Lcoder.reset()
-            if direction =="Up":
+            if direction =="Forward":
                 while self.Lcoder.get()<distance:
                     self.setDriveMotors(.5, -.5)
-            elif direction =="Up":
+                self.setDriveMotors(0, 0)
+            elif direction =="Backward":
                 while self.Lcoder.get()>distance:
                     self.setDriveMotors(-.5, .5)
+                self.setDriveMotors(0, 0)
         
         def turn(self,degrees):
             self.Gyroo.reset()
             if degrees >=0:#if it's turning left
                 while self.Gyroo.getAngle()()<=degrees:
                     self.setDriveMotors(-.25, -.25)#assuming it's turning left here
+                self.setDriveMotors(0, 0)
                 return 0
             if degrees <=0:#if it's turning right
                 while self.Gyroo.getAngle()()>=degrees:#expecting a negative value for this side
                     self.setDriveMotors(.25,.25)#assuming it's turning right here
+                self.setDriveMotors(0, 0)
             
         def find_tape(self):
             while self.Gyroo.getAngle()()<=360:#im assuming it's going to count up from 0 to 360
                 self.setDriveMotors(-.25, -.25)
                 deg,asmith,dist= distance_to_tape(self)
                 if dist != -1:
-                    return 
-                #check and see if distance value is -1 or not
-                #if it isn't:
-                    #return distance,angle
-            #return -1
-            
-        def find_cube(self):
+                    self.setDriveMotors(0, 0)
+                    return deg,asmith,dist
+            self.setDriveMotors(0, 0)
+            return -1
         def distance_to_tape(self):
-            
-        def distance_to_cube(self):
+            #lolly's code here
+
         def pinser(self,state):
-        def wrist(self,state):
+            self.auto_loop_counter = 0
+            while self.auto_loop_counter <= 50:
+                self.Lpiston.set(False)
+                self.Rpiston.set(False)
+                self.auto_loop_counter= self.auto_loop_counter+1
+            self.Lpiston.set(True)
+            self.Rpiston.set(True)
+            return 0
+        def wrist(self,state):#must get maximum and minimum
+            max_wrist=90#set low so it will stop before it breaks itself at 100
+            min_wrist=10#set high so it will stop before it breaks itself at 0
+            if direction =="Forward":
+                while self.Wcoder.get()<max_wrist:
+					for motor in self.LnCube_motor:
+						motor.set(.25)
+				for motor in self.LnCube_motor:
+						motor.set(0)
+					
+
+
+            elif direction =="Backward":
+                while self.Wcoder.get()>min_wrist:
+
 
       
     def autonomousPeriodic(self):
@@ -193,7 +206,6 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             self.stage =1
         
         
-        #n = self.PID()
         elif self.stage ==1:
             if self.Rcoder.get() <= 7100:
                 x=self.Gyroo.getAngle()
@@ -269,7 +281,6 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             self.stage =51
         
         
-        #n = self.PID()
         elif self.stage ==51:
             if self.Rcoder.get() >= -9000:
                 x=self.Gyroo.getAngle()
@@ -337,7 +348,6 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                     self.stage =151
         
         
-        #n = self.PID()
         elif self.stage ==151:
             if self.Rcoder.get() >= -5000:
                 y=self.Rcoder.get()
@@ -391,8 +401,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             self.stage =1
             self.auto_loop_counter = 0
         
-        
-        #n = self.PID()
+
         elif self.stage ==1:
             if self.auto_loop_counter <= 250:
                 self.setDriveMotors(-.25,.25)
@@ -430,8 +439,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
             self.stage =1001
             self.auto_loop_counter = 0
         
-        
-        #n = self.PID()
+
         elif self.stage ==1001:
             if self.auto_loop_counter <= 250:
                 self.setDriveMotors(-.25,.25)
@@ -541,24 +549,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
     def testPeriodic(self):
         """This function is called periodically during test mode."""
 
-    
 
-    def PID(self):
-        """PID for angle control"""
-        error = math.tan(self.setpoint - self.Gyroo.getAngle())/4 # Error = Target - Actual
-        #print("error is "+str(error))
-        self.integral = self.integral + (error*.02)
-        #print("Int is "+str(self.integral))
-        derivative = (error - self.previous_error) / .02
-        print("the gyro is "+str(self.Gyroo.getAngle()))
-        #print("Der is "+str(derivative))
-        self.rcw = self.P*error + self.I*self.integral + self.D*derivative
-        #self.rcw = .25 + self.I*self.integral + self.D*derivative
-        print(str(self.rcw)+" = "+str(self.P*error)+" + "+str(self.I*self.integral)+" + "+str(self.D*derivative))
-        #print(str(self.rcw)+" = "+str(.25)+" + "+str(self.I*self.integral)+" + "+str(self.D*derivative))
-        #print("Motor of the right is "+str(self.rcw))
-        n = self.rcw
-        return n
 
     def Gteen(self):
         value = self.Gteencont.getY()#405 is the desired max on practice bot
