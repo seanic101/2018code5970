@@ -3,8 +3,11 @@ import wpilib
 import math
 from wpilib.buttons.joystickbutton import JoystickButton
 import drive
+import os
+import sys
 here = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, here + '/../../vision/tcp')
+sys.path.insert(0, here + '/../vision/tcp')
+sys.path.insert(0, here + '/../vision')
 #Windows path
 #sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
 import socket
@@ -16,7 +19,7 @@ import argparse
 
 class BeaverTronicsRobot(wpilib.IterativeRobot):
     def robotInit(self):
-     
+
         #**************Camera Initialization********************
         #Networktables.initialize('server=roborio.5970-frc.local')
         #wpilib.CameraServer.launch()
@@ -66,7 +69,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         #self.Rcoder = wpilib.Encoder(2,3)
         self.Lcoder = wpilib.Encoder(0,1)
         self.Gcoder = wpilib.Encoder(4,5)
-        elf.Wcoder = wpilib.Encoder(2,3)
+        self.Wcoder = wpilib.Encoder(2,3)
 
 
         #***************Driverstation Initialization******************
@@ -95,7 +98,175 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.Rpiston = wpilib.Solenoid(3)
         self.pneumaL=JoystickButton(self.steering, 1)
         self.pneumaR=JoystickButton(self.throttle, 1)
+    
+    def drive_forward(self,distance,direction):
+        self.Lcoder.reset()
+        if direction =="Forward":
+            while self.Lcoder.get()<distance:
+                self.setDriveMotors(.5, -.5)
+            self.setDriveMotors(0, 0)
+        elif direction =="Backward":
+            while self.Lcoder.get()>distance:
+                self.setDriveMotors(-.5, .5)
+            self.setDriveMotors(0, 0)
+    
+    def turn(self,degrees):
+        self.Gyroo.reset()
+        if degrees >=0:#if it's turning left
+            while self.Gyroo.getAngle()()<=degrees:
+                self.setDriveMotors(-.25, -.25)#assuming it's turning left here
+            self.setDriveMotors(0, 0)
+            return 0
+        if degrees <=0:#if it's turning right
+            while self.Gyroo.getAngle()()>=degrees:#expecting a negative value for this side
+                self.setDriveMotors(.25,.25)#assuming it's turning right here
+            self.setDriveMotors(0, 0)
+        
+    def find_tape(self):
+        while self.Gyroo.getAngle()<=360:#im assuming it's going to count up from 0 to 360
+            self.setDriveMotors(-.25, -.25)
+            deg,asmith,dist= self.distance_to_tape()
+            if dist != -1:
+                self.setDriveMotors(0, 0)
+                return deg,asmith,dist
+        self.setDriveMotors(0, 0)
+        return -1
+    
+    
+    
+    
+    
+    def distance_to_tape(self):
+        #lolly's code here
+        #Jetson path
+        here = os.path.dirname(os.path.realpath(__file__))
+        sys.path.insert(0, here + '/../../vision/tcp')
 
+        #Windows path
+        #sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
+        #import socket
+        #import json
+        #from time import sleep
+        #from server import parse, decode_json
+        #import re
+        #import argparse
+
+        self.PY2 = sys.version_info[0] == 2
+
+        self.MSG_DEFAULT = "shutdown:" + json.dumps({}, ensure_ascii=False)
+        self.LOC_DEFAULT = "locate_tape:" + json.dumps({}, ensure_ascii=False)
+        self.RESET_DEFAULT = "reset_tape:"  + json.dumps({}, ensure_ascii=False)
+        self.DEBUG_ON_DEFAULT = "debug_on:"  + json.dumps({}, ensure_ascii=False)
+        self.DEBUG_DEFAULT = "debug_on:" + json.dumps({'filename':'/tmp/debugout'}, ensure_ascii=False)
+
+        self.TCP_IP = '10.59.70.12'
+        self.TCP_PORT = 5005
+        self.BUFFER_SIZE = 1024
+
+        self.parser = argparse.ArgumentParser(description="Beavertronics Jetson TX1 client")
+
+        self.parser.add_argument('-d', '--debug', action='store_true')
+        self.parser.add_argument('--sim', action='store_true')
+        print(sys.argv)
+        self.args = self.parser.parse_args
+        if self.args.sim:
+            sys.argv=['robot.py', 'sim']
+
+        if self.args.debug:
+            print("Connecting to server on localhost...")
+            self.TCP_IP = '127.0.0.1'
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.TCP_IP, self.TCP_PORT))
+
+        if self.args.debug:
+            print("Connection to local host established")
+
+        try:
+
+            if self.PY2:
+                s.send(self.RESET_DEFAULT)
+            else:
+                s.send(bytes(self.RESET_DEFAULT, 'utf-8'))
+
+            self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
+            if self.args.debug:
+                print("Got json_data: <" + str(self.json_data) + ">")
+
+            while 1:
+                sleep(0.1)
+                if self.PY2:
+                    s.send(self.LOC_DEFAULT)
+                else:
+                    s.send(bytes(self.LOC_DEFAULT, 'utf-8'))
+
+                self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
+                if self.PY2:
+                    self.tmp =  self.json_data
+                else:
+                    self.tmp =  self.bytes_decode(self.json_data)
+                    
+                self.degrees, self.azim, self.distance = decode_json(self.tmp)
+                return self.degrees, self.azim, self.distance
+                #print("client received loc data: <"+ str(self.degrees) + " " + str(self.azim) + " " + str(self.distance) + ">")
+        #KeyboardInterrupt is Ctrl-C
+        except KeyboardInterrupt:
+            print('interrupted')
+
+        s.send(MSG_DEFAULT)
+        self.json_data = s.recv(BUFFER_SIZE)
+        s.close()
+
+        if self.PY2:
+            self.tmp =  self.json_data
+        else:
+            self.tmp =  bytes_decode(json_data)
+        print("client received shutdown data:" + self.tmp)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    def pinser(self,state):
+        self.auto_loop_counter = 0
+        while self.auto_loop_counter <= 50:
+            self.Lpiston.set(False)
+            self.Rpiston.set(False)
+            self.auto_loop_counter= self.auto_loop_counter+1
+        self.Lpiston.set(True)
+        self.Rpiston.set(True)
+        return 0
+    def wrist(self,state):#must get maximum and minimum
+        max_wrist=90#set low so it will stop before it breaks itself at 100
+        min_wrist=10#set high so it will stop before it breaks itself at 0
+        if direction =="Forward":
+            while self.Wcoder.get()<max_wrist:
+                for motor in self.LnCube_motor:
+                    motor.set(.25)
+            for motor in self.LnCube_motor:
+                    motor.set(0)
+        elif direction =="Backward":
+            while self.Wcoder.get()<max_wrist:
+                for motor in self.LnCube_motor:
+                    motor.set(-.25)
+            for motor in self.LnCube_motor:
+                    motor.set(0)
+
+
+  
+ 
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
         self.auto_loop_counter = 0
@@ -105,169 +276,10 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.stage = 0
         data = wpilib.DriverStation.getInstance().getGameSpecificMessage()
         
-        def drive_forward(self,distance,direction):
-            self.Lcoder.reset()
-            if direction =="Forward":
-                while self.Lcoder.get()<distance:
-                    self.setDriveMotors(.5, -.5)
-                self.setDriveMotors(0, 0)
-            elif direction =="Backward":
-                while self.Lcoder.get()>distance:
-                    self.setDriveMotors(-.5, .5)
-                self.setDriveMotors(0, 0)
         
-        def turn(self,degrees):
-            self.Gyroo.reset()
-            if degrees >=0:#if it's turning left
-                while self.Gyroo.getAngle()()<=degrees:
-                    self.setDriveMotors(-.25, -.25)#assuming it's turning left here
-                self.setDriveMotors(0, 0)
-                return 0
-            if degrees <=0:#if it's turning right
-                while self.Gyroo.getAngle()()>=degrees:#expecting a negative value for this side
-                    self.setDriveMotors(.25,.25)#assuming it's turning right here
-                self.setDriveMotors(0, 0)
-            
-        def find_tape(self):
-            while self.Gyroo.getAngle()()<=360:#im assuming it's going to count up from 0 to 360
-                self.setDriveMotors(-.25, -.25)
-                deg,asmith,dist= distance_to_tape(self)
-                if dist != -1:
-                    self.setDriveMotors(0, 0)
-                    return deg,asmith,dist
-            self.setDriveMotors(0, 0)
-            return -1
-        
-		
-		
-		
-		
-		def distance_to_tape(self):
-            #lolly's code here
-			#Jetson path
-			here = os.path.dirname(os.path.realpath(__file__))
-			sys.path.insert(0, here + '/../../vision/tcp')
-
-			#Windows path
-			#sys.path.insert(0,"C:/Users/Beavertronics/Desktop/2018Workstation/2018code5970/vision/tcp")
-			#import socket
-			#import json
-			#from time import sleep
-			#from server import parse, decode_json
-			#import re
-			#import argparse
-
-			PY2 = sys.version_info[0] == 2
-
-			MSG_DEFAULT = "shutdown:" + json.dumps({}, ensure_ascii=False)
-			LOC_DEFAULT = "locate_tape:" + json.dumps({}, ensure_ascii=False)
-			RESET_DEFAULT = "reset_tape:"  + json.dumps({}, ensure_ascii=False)
-			DEBUG_ON_DEFAULT = "debug_on:"  + json.dumps({}, ensure_ascii=False)
-			DEBUG_DEFAULT = "debug_on:" + json.dumps({'filename':'/tmp/debugout'}, ensure_ascii=False)
-
-			TCP_IP = '10.59.70.12'
-			TCP_PORT = 5005
-			BUFFER_SIZE = 1024
-
-			self.parser = argparse.ArgumentParser(description="Beavertronics Jetson TX1 client")
-
-			self.parser.add_argument('-d', '--debug', action='store_true')
-
-			self.args = selfparser.parse_args()
-			if args.debug:
-				print("Connecting to server on localhost...")
-				self.TCP_IP = '127.0.0.1'
-
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((self.TCP_IP, self.TCP_PORT))
-
-			if args.debug:
-				print("Connection to local host established")
-
-			try:
-
-				if PY2:
-					s.send(self.RESET_DEFAULT)
-				else:
-					s.send(bytes(self.RESET_DEFAULT, 'utf-8'))
-
-				self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
-				if args.debug:
-					print("Got json_data: <" + str(self.json_data) + ">")
-
-				while 1:
-					sleep(0.1)
-					if PY2:
-						s.send(self.LOC_DEFAULT)
-					else:
-						s.send(bytes(self.LOC_DEFAULT, 'utf-8'))
-
-					self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
-					if PY2:
-						self.tmp =  self.json_data
-					else:
-						self.tmp =  self.bytes_decode(self.json_data)
-						
-					self.degrees, self.azim, self.distance = decode_json(self.tmp)
-					return self.degrees, self.azim, self.distance
-					#print("client received loc data: <"+ str(self.degrees) + " " + str(self.azim) + " " + str(self.distance) + ">")
-			#KeyboardInterrupt is Ctrl-C
-			except KeyboardInterrupt:
-				print('interrupted')
-
-			s.send(MSG_DEFAULT)
-			self.json_data = s.recv(BUFFER_SIZE)
-			s.close()
-
-			if PY2:
-				self.tmp =  self.json_data
-			else:
-				self.tmp =  bytes_decode(json_data)
-			print("client received shutdown data:" + self.tmp)
-
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-        def pinser(self,state):
-            self.auto_loop_counter = 0
-            while self.auto_loop_counter <= 50:
-                self.Lpiston.set(False)
-                self.Rpiston.set(False)
-                self.auto_loop_counter= self.auto_loop_counter+1
-            self.Lpiston.set(True)
-            self.Rpiston.set(True)
-            return 0
-        def wrist(self,state):#must get maximum and minimum
-            max_wrist=90#set low so it will stop before it breaks itself at 100
-            min_wrist=10#set high so it will stop before it breaks itself at 0
-            if direction =="Forward":
-                while self.Wcoder.get()<max_wrist:
-                    for motor in self.LnCube_motor:
-                        motor.set(.25)
-                for motor in self.LnCube_motor:
-                        motor.set(0)
-                    
-
-
-            elif direction =="Backward":
-                while self.Wcoder.get()>min_wrist:
-
-
-      
     def autonomousPeriodic(self):
+        self.find_tape()
+        #print("made it")
         #old auto code could be used to cross baseline
         #print(self.auto_loop_counter)
         #x = self.Ultra.getVoltage()
