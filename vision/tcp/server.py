@@ -15,7 +15,7 @@ RSP_DEFAULT = "Success:" + json.dumps({}, ensure_ascii=False)
 #TAPE_LOCATION = None
 BUFFER_SIZE = 100  # Normally 1024, but we want fast response
 
-DEBUG = True
+DEBUG = False
 
 import signal
 import time

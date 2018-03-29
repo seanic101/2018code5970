@@ -13,7 +13,7 @@ sys.path.insert(0, here + '/..')
 import socket
 import json
 from time import sleep
-from server import parse
+from server import parse, decode_json
 import re
 import argparse
 
@@ -21,6 +21,8 @@ PY2 = sys.version_info[0] == 2
 
 MSG_DEFAULT = "shutdown:" + json.dumps({}, ensure_ascii=False)
 LOC_DEFAULT = "locate_tape:" + json.dumps({}, ensure_ascii=False)
+RESET_DEFAULT = "reset_tape:"  + json.dumps({}, ensure_ascii=False)
+DEBUG_ON_DEFAULT = "debug_on:"  + json.dumps({}, ensure_ascii=False)
 DEBUG_DEFAULT = "debug_on:" + json.dumps({'filename':'/tmp/debugout'}, ensure_ascii=False)
 
 TCP_IP = '10.59.70.12'
@@ -39,7 +41,20 @@ if args.debug:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((TCP_IP, TCP_PORT))
 
+if args.debug:
+	print("Connection to local host established")
+
 try:
+
+	if PY2:
+		s.send(RESET_DEFAULT)
+	else:
+		s.send(bytes(RESET_DEFAULT, 'utf-8'))
+
+	cmd, json_data = parse(s.recv(BUFFER_SIZE))
+	if args.debug:
+		print("Got json_data: <" + str(json_data) + ">")
+
 	while 1:
 		sleep(0.1)
 		if PY2:
@@ -53,7 +68,8 @@ try:
 		else:
 			tmp =  bytes_decode(json_data)
 			
-		print("client received loc data: <"+ tmp + ">")
+		degrees, azim, distance = decode_json(tmp)
+		print("client received loc data: <"+ str(degrees) + " " + str(azim) + " " + str(distance) + ">")
 #KeyboardInterrupt is Ctrl-C
 except KeyboardInterrupt:
 	print('interrupted')

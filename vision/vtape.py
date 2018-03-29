@@ -20,7 +20,6 @@ def setLocation(mm, mutex, degrees, azim, distance):
 		json.dumps(
 		(loc.degrees, loc.azim, loc.distance),
 		ensure_ascii=False) + '\n'
-		delta_x_deg,
 		)
 	with mutex:
 		mm.seek(0)

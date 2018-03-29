@@ -13,6 +13,7 @@
 #	systemctl stop jetson
 
 import sys
+
 sys.path.insert(0, 'tcp')
 sys.path.insert(0, '../haarcascade/powercube')
 import os
@@ -111,12 +112,18 @@ def main(logf):
 def start_daemon(pidf, logf):
 	### This launches the daemon in its context
 	### XXX pidfile is a context
+
+	# path to the directory containing start_vision
+	here = os.path.dirname(os.path.realpath(__file__))
+	my_uid = os.getuid()
+	my_gid = os.getgid()
+
 	with daemon.DaemonContext(
-		working_directory='/home/nvidia/opencv_workspace/robotgit/2018code5970/vision',
+		working_directory=here,
 		umask=0o002,
 		stdout=open("/tmp/stdout", "wb"), stderr=open("/tmp/stderr", "wb"),
 		pidfile=pidfile.TimeoutPIDLockFile(pidf),
-		uid=1001, gid=1001) as context:
+		uid=my_uid, gid=my_gid) as context:
 		main(logf)
 
 if __name__ == "__main__":
