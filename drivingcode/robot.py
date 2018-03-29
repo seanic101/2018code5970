@@ -139,7 +139,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         def find_tape(self):
             while self.Gyroo.getAngle()()<=360:#im assuming it's going to count up from 0 to 360
                 self.setDriveMotors(-.25, -.25)
-                deg,asmith,dis t= distance_to_tape(self)
+                deg,asmith,dist= distance_to_tape(self)
                 if dist != -1:
                     return 
                 #check and see if distance value is -1 or not
