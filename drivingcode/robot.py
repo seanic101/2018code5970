@@ -111,18 +111,48 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
         self.auto_loop_counter = 0
-        #print("here")
         self.Lcoder.reset()
         #self.Rcoder.reset()
         self.Gcoder.reset()
         self.stage = 0
-        #self.cap = cv2.VideoCapture(0)
-        #self.new_con = self.cap.set(11, 0.1)
-        #print("new contrast " + (str(self.new_con))) #-trast
-        #self.cap = cv2.VideoCapture(0)
         data = wpilib.DriverStation.getInstance().getGameSpecificMessage()
-        #self.setSetpoint()
-        #setSetpoint
+        
+        def drive_forward(self,distance,direction):
+            self.Lcoder.reset()
+            if direction =="Up":
+                while self.Lcoder.get()<distance:
+                    self.setDriveMotors(.5, -.5)
+            elif direction =="Up":
+                while self.Lcoder.get()>distance:
+                    self.setDriveMotors(-.5, .5)
+        
+        def turn(self,degrees):
+            self.Gyroo.reset()
+            if degrees >=0:#if it's turning left
+                while self.Gyroo.getAngle()()<=degrees:
+                    self.setDriveMotors(-.25, -.25)#assuming it's turning left here
+                return 0
+            if degrees <=0:#if it's turning right
+                while self.Gyroo.getAngle()()>=degrees:#expecting a negative value for this side
+                    self.setDriveMotors(.25,.25)#assuming it's turning right here
+            
+        def find_tape(self):
+            while self.Gyroo.getAngle()()<=360:#im assuming it's going to count up from 0 to 360
+                self.setDriveMotors(-.25, -.25)
+                deg,asmith,dis t= distance_to_tape(self)
+                if dist != -1:
+                    return 
+                #check and see if distance value is -1 or not
+                #if it isn't:
+                    #return distance,angle
+            #return -1
+            
+        def find_cube(self):
+        def distance_to_tape(self):
+            
+        def distance_to_cube(self):
+        def pinser(self,state):
+        def wrist(self,state):
 
       
     def autonomousPeriodic(self):
