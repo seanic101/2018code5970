@@ -162,24 +162,24 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
         self.TCP_IP = '10.59.70.12'
         self.TCP_PORT = 5005
         self.BUFFER_SIZE = 1024
+        debug=True
+        #parser = argparse.ArgumentParser(description="Beavertronics Jetson TX1 client")
 
-        self.parser = argparse.ArgumentParser(description="Beavertronics Jetson TX1 client")
+        #parser.add_argument('-d', '--debug', action='store_true')
+        #parser.add_argument('--sim', action='store_true')
+        #print(sys.argv)
+        #args = parser.parse_args()
+        #if args.sim:
+            #sys.argv=['robot.py', 'sim']
 
-        self.parser.add_argument('-d', '--debug', action='store_true')
-        self.parser.add_argument('--sim', action='store_true')
-        print(sys.argv)
-        self.args = self.parser.parse_args
-        if self.args.sim:
-            sys.argv=['robot.py', 'sim']
-
-        if self.args.debug:
+        if debug:
             print("Connecting to server on localhost...")
             self.TCP_IP = '127.0.0.1'
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.TCP_IP, self.TCP_PORT))
 
-        if self.args.debug:
+        if debug:
             print("Connection to local host established")
 
         try:
@@ -190,7 +190,7 @@ class BeaverTronicsRobot(wpilib.IterativeRobot):
                 s.send(bytes(self.RESET_DEFAULT, 'utf-8'))
 
             self.cmd, self.json_data = parse(s.recv(self.BUFFER_SIZE))
-            if self.args.debug:
+            if debug:
                 print("Got json_data: <" + str(self.json_data) + ">")
 
             while 1:
