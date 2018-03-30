@@ -206,7 +206,7 @@ def find_tape(mm, mutex, cam):
 						print("Difference of height is too large")
 					continue
 
-				logging.debug("Passed filters")
+				logging.info("Passed filters")
 	
 				box = candidates[i]
 				box1 = Box(box["x"], box["y"], box["w"], box["h"])
